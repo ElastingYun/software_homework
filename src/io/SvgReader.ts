@@ -23,6 +23,11 @@ export class SvgReader {
   /** @param source 来源名（文件路径），用于错误信息。 */
   read(xml: string, source: string): LoadedDocument {
     const root = this.parse(xml, source);
+    if (this.elementDepth(root) > SvgDocument.MAX_DEPTH) {
+      throw new EditorError(
+        `cannot read file: ${source} (nesting too deep (at most ${SvgDocument.MAX_DEPTH} levels))`,
+      );
+    }
     const warnings: string[] = [];
     const [width, height] = this.canvasSize(root, warnings);
     const document = new SvgDocument(width, height);
@@ -44,6 +49,20 @@ export class SvgReader {
       throw new EditorError(`cannot read file: ${source} (root element is not <svg>)`);
     }
     return root;
+  }
+
+  /** 根元素之下的最大嵌套层数（迭代计算）；超限的文件在任何递归处理之前被拒绝。 */
+  private elementDepth(root: Element): number {
+    let depth = 0;
+    const pending: Array<[Element, number]> = this.childElements(root).map((child) => [child, 1]);
+    for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+      const [element, level] = next;
+      depth = Math.max(depth, level);
+      for (const child of this.childElements(element)) {
+        pending.push([child, level + 1]);
+      }
+    }
+    return depth;
   }
 
   private canvasSize(root: Element, warnings: string[]): [number, number] {

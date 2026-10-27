@@ -8,11 +8,13 @@ import type { Shape } from './Shape.js';
 
 /**
  * 当前编辑的 SVG 文档：画布尺寸 + 图形树 + id 索引。
- * 所有结构修改都经由 attach / detach / relocate，保证"id 唯一且索引与树一致"。
+ * 所有结构修改都经由 attach / detach / relocate，保证三条不变量：
+ * id 唯一、索引与树一致、嵌套不超过 MAX_DEPTH 层（使所有递归算法的深度有界）。
  */
 export class SvgDocument {
   static readonly DEFAULT_WIDTH = 800;
   static readonly DEFAULT_HEIGHT = 600;
+  static readonly MAX_DEPTH = 500;
 
   readonly root = new CanvasRoot();
   private readonly index = new Map<string, Shape>();
@@ -89,6 +91,36 @@ export class SvgDocument {
     return this.allShapes().indexOf(shape);
   }
 
+  /** 容器的层级：画布根为 0，顶层容器为 1。 */
+  depthOf(container: Container): number {
+    let depth = 0;
+    for (let current: Container | null = container; current !== null && !current.isRoot(); current = current.parent) {
+      depth += 1;
+    }
+    return depth;
+  }
+
+  /** 子树的高度（叶子为 1），迭代计算，不依赖调用栈深度。 */
+  heightOf(shape: Shape): number {
+    let height = 0;
+    const pending: Array<[Shape, number]> = [[shape, 1]];
+    for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+      const [current, level] = next;
+      height = Math.max(height, level);
+      for (const child of current.children()) {
+        pending.push([child, level + 1]);
+      }
+    }
+    return height;
+  }
+
+  /** 在容器下放入高度为 height 的子树后，嵌套不得超过 MAX_DEPTH。 */
+  ensureRoom(container: Container, height: number): void {
+    if (this.depthOf(container) + height > SvgDocument.MAX_DEPTH) {
+      throw new EditorError(`nesting too deep (at most ${SvgDocument.MAX_DEPTH} levels)`);
+    }
+  }
+
   positionOf(shape: Shape): ChildPosition {
     const parent = SvgDocument.parentOf(shape);
     return new ChildPosition(parent, parent.indexOfChild(shape));
@@ -109,6 +141,7 @@ export class SvgDocument {
       }
       seen.add(member.id);
     }
+    this.ensureRoom(container, this.heightOf(shape));
     container.insertChild(shape, index);
     for (const member of subtree) {
       this.index.set(member.id, member);
@@ -118,8 +151,9 @@ export class SvgDocument {
   /** 把子树从文档中摘除并注销其全部 id；返回原位置。 */
   detach(shape: Shape): ChildPosition {
     const parent = SvgDocument.parentOf(shape);
+    const subtree = shape.selfAndDescendants();
     const position = new ChildPosition(parent, parent.removeChild(shape));
-    for (const member of shape.selfAndDescendants()) {
+    for (const member of subtree) {
       this.index.delete(member.id);
     }
     return position;
@@ -133,6 +167,7 @@ export class SvgDocument {
     if (container === shape.asContainer() || this.isInsideSubtree(container, shape)) {
       throw new Error(`cannot move ${shape.label} into its own subtree`);
     }
+    this.ensureRoom(container, this.heightOf(shape));
     const parent = SvgDocument.parentOf(shape);
     const position = new ChildPosition(parent, parent.removeChild(shape));
     container.insertChild(shape, index ?? container.childShapes().length);

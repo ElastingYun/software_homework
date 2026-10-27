@@ -25,6 +25,7 @@ export class GroupShapesCommand extends EditCommand {
   protected perform(document: SvgDocument): string[] {
     const members = this.validate(document);
     const anchor = document.positionOf(members[0] as Shape);
+    document.ensureRoom(anchor.container, 1 + Math.max(...members.map((member) => document.heightOf(member))));
     document.attach(this.group, anchor.container, anchor.index);
     this.moves = members.map((member) => [member, document.relocate(member, this.group)]);
     return [`${this.group.label} created with ${Quantity.children(members.length)}`];

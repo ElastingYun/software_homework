@@ -316,3 +316,14 @@ describe('BUG-10 (fixed in v0.8.9): set accepted meaningless style values', () =
     expect(session.file('u.svg')).toContain('<rect id="r" x="0" y="0" width="0" height="0" fill="" stroke-width="calc(1px + 1px)"/>');
   });
 });
+
+describe('BUG-11 (fixed in v0.8.10): "in" could not be used as an id', () => {
+  it('in is a keyword only as the second-to-last of at least four arguments', () => {
+    const session = new CliSession();
+    session.run('init');
+    expect(session.run('create g in')).toEqual(['g#in created']);
+    expect(session.run('create rect r 0 0 1 1 in in')).toEqual(['rect#r created in g#in']);
+    expect(session.run('create rect in2 0 0 1 1 red in in')).toEqual(['rect#in2 created in g#in']);
+    session.expectError('create g g1 in', 'usage: create <type> <id> [params…] [in <containerId>]');
+  });
+});

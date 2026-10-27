@@ -34,6 +34,7 @@ export class SvgReader {
     const warnings: string[] = [];
     const [width, height] = this.canvasSize(root, warnings);
     const document = new SvgDocument(width, height);
+    this.keepCustomViewBox(root, document, warnings);
     this.preserveRootAttributes(root, document);
     const allocator = new IdAllocator(this.explicitIds(root));
     const rootId = root.getAttribute('id');
@@ -95,8 +96,7 @@ export class SvgReader {
   }
 
   private canvasSize(root: Element, warnings: string[]): [number, number] {
-    const rawViewBox = root.getAttribute('viewBox');
-    const viewBox = this.parseViewBox(rawViewBox);
+    const viewBox = this.parseViewBox(root.getAttribute('viewBox'));
     let width = this.parseLength(root.getAttribute('width')) ?? viewBox?.[2] ?? null;
     let height = this.parseLength(root.getAttribute('height')) ?? viewBox?.[3] ?? null;
     if (width === null || height === null) {
@@ -104,12 +104,23 @@ export class SvgReader {
       height ??= SvgDocument.DEFAULT_HEIGHT;
       warnings.push(`canvas size not specified, using ${NumericText.format(width)}x${NumericText.format(height)}`);
     }
-    if (viewBox !== null && (viewBox[0] !== 0 || viewBox[1] !== 0 || viewBox[2] !== width || viewBox[3] !== height)) {
-      warnings.push(
-        `viewBox "${rawViewBox}" ignored, using "0 0 ${NumericText.format(width)} ${NumericText.format(height)}"`,
-      );
-    }
     return [width, height];
+  }
+
+  /** 与 `0 0 w h` 不同（或无法解析）的 viewBox 原样保留，读入再保存不改变渲染结果（GUIDE D9）。 */
+  private keepCustomViewBox(root: Element, document: SvgDocument, warnings: string[]): void {
+    const raw = root.getAttribute('viewBox');
+    if (raw === null) {
+      return;
+    }
+    const viewBox = this.parseViewBox(raw);
+    if (viewBox === null) {
+      document.keepCustomViewBox(raw);
+      warnings.push(`viewBox "${raw}" is not valid, kept as-is`);
+    } else if (viewBox[0] !== 0 || viewBox[1] !== 0 || viewBox[2] !== document.width || viewBox[3] !== document.height) {
+      document.keepCustomViewBox(raw);
+      warnings.push(`viewBox "${raw}" kept: coordinates are in viewBox units, not canvas pixels`);
+    }
   }
 
   /** 正数长度（允许 px 后缀）；缺失或无法解析返回 null。 */

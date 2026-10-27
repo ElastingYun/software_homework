@@ -33,7 +33,8 @@ export class TreeRenderer {
   renderDocument(document: SvgDocument): string[] {
     const rows: Array<[string, string]> = [];
     this.collect(document.root.childShapes(), '', rows);
-    return [`svg (${document.sizeLabel})`, ...this.align(rows)];
+    const viewBox = document.customViewBox === null ? '' : `, viewBox ${document.customViewBox}`;
+    return [`svg (${document.sizeLabel}${viewBox})`, ...this.align(rows)];
   }
 
   /** 以某个图形为根的子树。 */

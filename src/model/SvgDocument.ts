@@ -20,6 +20,7 @@ export class SvgDocument {
   private readonly index = new Map<string, Shape>();
   private canvasWidth = SvgDocument.DEFAULT_WIDTH;
   private canvasHeight = SvgDocument.DEFAULT_HEIGHT;
+  private viewBox: string | null = null;
 
   constructor(width: number = SvgDocument.DEFAULT_WIDTH, height: number = SvgDocument.DEFAULT_HEIGHT) {
     this.resize(width, height);
@@ -36,6 +37,18 @@ export class SvgDocument {
   /** 如 "800x600"。 */
   get sizeLabel(): string {
     return `${NumericText.format(this.canvasWidth)}x${NumericText.format(this.canvasHeight)}`;
+  }
+
+  /**
+   * 读入文件中与 `0 0 w h` 不同的 viewBox（原样保留，坐标单位因而不是画布像素）；
+   * 为 null 时 viewBox 由画布尺寸决定并随 canvas 改变。
+   */
+  get customViewBox(): string | null {
+    return this.viewBox;
+  }
+
+  keepCustomViewBox(viewBox: string): void {
+    this.viewBox = viewBox;
   }
 
   resize(width: number, height: number): void {

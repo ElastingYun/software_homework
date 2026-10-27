@@ -18,7 +18,7 @@ export class SvgWriter {
       ['xmlns', SvgWriter.SVG_NAMESPACE],
       ['width', width],
       ['height', height],
-      ['viewBox', `0 0 ${width} ${height}`],
+      ['viewBox', document.customViewBox ?? `0 0 ${width} ${height}`],
       ...document.root.preservedAttributes(),
     ];
     const lines = ['<?xml version="1.0" encoding="UTF-8"?>', `<svg${this.attributes(rootAttributes)}>`];

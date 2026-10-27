@@ -4,6 +4,14 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.8.11] — 修正（外观）：错误信息夹带解析器内部措辞；中文 id 的树对不齐
+
+### Fixed
+- **BUG-12**（独立黑盒测试发现，外观）
+  - 读入错误中出现 xmldom 的内部包装，如 `Reporting error "…" caused onErrorStopParsing`、`Error constructing the DOM: NamespaceError: …`。修正：`SvgReader` 去掉包装，只保留原因（`namespace error: …`）。
+  - `tree` 按字符数而非显示宽度对齐，含中文 id 时摘要列在终端中错位（GUIDE D14）。修正：`TreeRenderer` 按终端显示宽度计算，东亚宽字符占 2 列。
+  - 回归测试：BUG-12（3 个用例）。
+
 ## [v0.8.10] — 修正：`in` 不能用作 id
 
 ### Fixed

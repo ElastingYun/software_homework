@@ -4,6 +4,14 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.8.3] — 修正：保存时数值被四舍五入到 6 位小数
+
+### Fixed
+- **BUG-4**（独立黑盒测试发现）`save` 把所有数值按显示规则保留 6 位小数：读入 `x="0.12345678" width="0.0000003"` 后不做任何修改直接保存，得到 `x="0.123457" width="0"`——图形消失；`canvas 1e-7 1` 存为 `width="0"`，读回时又退回 800。
+  - 原因：v0.2.0 把"去掉浮点噪声"的显示格式化 `NumericText.format` 也用在了序列化上，显示精度与存储精度混为一谈。
+  - 修正：新增 `NumericText.serialize`（15 位有效数字）供 `SvgWriter` / `LeafShape.ownSvgAttributes` 使用；`format` 仅用于显示，并对按 6 位小数会显示成 0 的非零值改用有效数字（`w=2.5e-7`）。
+  - 回归测试：BUG-4（4 个用例）；`NumericText.test` 新增 serialize 用例。
+
 ## [v0.8.2] — 修正：内层元素的命名空间声明在移动图形后丢失
 
 ### Fixed

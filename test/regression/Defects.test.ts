@@ -327,3 +327,25 @@ describe('BUG-11 (fixed in v0.8.10): "in" could not be used as an id', () => {
     session.expectError('create g g1 in', 'usage: create <type> <id> [params…] [in <containerId>]');
   });
 });
+
+describe('BUG-12 (fixed in v0.8.11): cosmetic — parser internals in error text, CJK misalignment', () => {
+  it.each([
+    ['junk<svg xmlns="http://www.w3.org/2000/svg"/>', "invalid XML: Unexpected content outside root element: 'junk'"],
+    ['<svg xmlns="http://www.w3.org/2000/svg">&nbsp;</svg>', 'invalid XML: entity not found:&nbsp;'],
+    ['<svg xmlns="http://www.w3.org/2000/svg"><x:rect/></svg>', 'invalid XML: namespace error: prefix is non-null and namespace is null'],
+  ])('read error for %j is readable', (xml, reason) => {
+    const session = new CliSession();
+    session.storage.files.set('x.svg', xml);
+    expect(session.run('read x.svg')).toEqual([`error: cannot read file: x.svg (${reason})`]);
+  });
+
+  it('tree aligns summaries by display width (CJK characters are two columns wide)', () => {
+    const session = new CliSession();
+    session.run('init 10 10', 'create rect 节点一 0 0 1 1', 'create rect abc 0 0 1 1');
+    expect(session.run('tree')).toEqual([
+      'svg (10x10)',
+      '├── rect#节点一  x=0 y=0 w=1 h=1',
+      '└── rect#abc     x=0 y=0 w=1 h=1',
+    ]);
+  });
+});

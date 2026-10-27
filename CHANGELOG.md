@@ -4,6 +4,14 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.8.7] — 修正：接受 XML 无法表示的字符
+
+### Fixed
+- **BUG-8**（独立黑盒测试发现）`create text t 0 0 "a<U+0001>b"`（或 id 中含 NUL）被接受并保存，得到的文件不是合法 XML（`xmllint`: PCDATA invalid Char value 1），浏览器拒绝渲染。
+  - 原因：只校验了数字，字符串原样进入模型。
+  - 修正：新增 `model/XmlCharacters`：id、表现属性值、文本内容在进入模型时检查（`error: invalid character U+0001 in text`）；制表、换行、CJK、emoji 不受影响。
+  - 回归测试：BUG-8（6 个用例，含孤立代理项与 U+FFFE）。
+
 ## [v0.8.6] — 修正：文本中的空白在保存/读回后改变
 
 ### Fixed

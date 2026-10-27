@@ -36,7 +36,7 @@ src/
   command/  Command 模式：命令、历史栈、编辑会话
   cli/      分词、参数解析、命令注册表、REPL（parsers/ 每个命令一个解析器）
   app/      组装根 SvgEditorApp；main.ts 为入口
-test/       model · io · view · command · cli · spec（按说明文档章节）· e2e（真实进程）· regression（BUG-1…13）· architecture
+test/       model · io · view · command · cli · spec（按说明文档章节）· e2e（真实进程）· regression（BUG-1…14）· architecture
 examples/   说明文档中的命令脚本、期望 transcript 与手写的期望 SVG
 doc/        README.md（架构方案 / 过程记录 / 一致性自查 / 质量保证）· GUIDE.md（开发指导）
 ```

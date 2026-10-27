@@ -1,6 +1,6 @@
 {
   "name": "svg-editor-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Lab1 Phase 1: command-line SVG editor (TypeScript, OO, Command pattern)",
   "type": "module",
   "private": true,

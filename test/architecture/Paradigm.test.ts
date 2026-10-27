@@ -16,7 +16,9 @@ class SourceTree {
 }
 
 const sources = SourceTree.files().filter((path) => !path.endsWith('main.ts'));
-const read = (path: string) => readFileSync(path, 'utf8');
+// 每个文件只在收集阶段读一次：在网络文件系统上，每个测试重复读取全部源文件会超出 5 秒的单测超时（v1.0.1）。
+const contents = new Map(sources.map((path) => [path, readFileSync(path, 'utf8')]));
+const read = (path: string) => contents.get(path) as string;
 
 describe('implementation paradigm (spec 2.1)', () => {
   it.each(sources)('%s declares exactly one exported class/interface named after the file', (path) => {

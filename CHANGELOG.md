@@ -4,6 +4,14 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.8.5] — 修正：叶子图形的子元素被静默丢弃
+
+### Fixed
+- **BUG-6**（独立黑盒测试发现）读入 `<rect><title>tip</title><animate/></rect>`、`<circle><rect id="inner"/></circle>` 时子元素被丢弃且没有任何警告（违反 GUIDE D7"不静默丢弃"）；`<text>a<title>tt</title>b</text>` 中的 tooltip 文本被并入可见文本，变成 `"attb"`。
+  - 原因：读入只对容器递归处理子元素；`text()` 直接取 `textContent`，把所有后代的字符数据都算作文本。
+  - 修正：`DomElementSource.text()` 只收集直接的文本/CDATA 节点与 `tspan` / `textPath` / `a` 中的文本；叶子图形构造后，未被使用的子元素以 `warning: dropped child elements of <rect id=r>: <title>, <animate>` 报告。
+  - 回归测试：BUG-6（3 个用例）。
+
 ## [v0.8.4] — 修正：带 UTF-8 BOM 的文件无法读入
 
 ### Fixed

@@ -59,6 +59,9 @@
 | D15 | 说明文档未给出的回显（scale、addto、front、undo create…） | 统一句式 `<tag>#<id> <动词短语>`，见 `test/` 中的期望输出 | 与已给出的回显风格一致 |
 | D16 | 非交互（管道/重定向）输入 | 回显 `svg> <命令>`，注释行原样回显，便于把脚本回放成 transcript | 说明文档提示"命令序列存成脚本回放" |
 | D17 | 退出 REPL | `exit`（或 EOF / Ctrl-D） | REPL 常规需求，作为普通命令注册 |
+| D18 | 错误、警告输出到哪个流 | 与正常输出同为 stdout，每条一行 | 保证脚本回放得到的 transcript 顺序与交互时一致 |
+| D19 | 未知命令 | `error: unknown command: foo (type 'help' for commands)` | 给出下一步提示 |
+| D20 | `show` 中几何属性的名字 | 用真实属性名（`width=10`），tree 中用缩写（`w=10`） | show 的输出可直接对应 `set` 的属性名 |
 
 ## 5. 版本与里程碑（git tag）
 

@@ -4,6 +4,19 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.6.0] — cli 模块 + 组装根：首个可运行版本
+
+### Added
+- `Tokenizer` / `Token`：空白分隔、双引号（含 `\"`、`\\` 转义与空串），引号内的 `in` 不是关键字；未闭合引号报错。
+- `ArgumentList`：参数个数、严格数字、尾部 `in <containerId>` 子句；统一 `usage: <语法>` 错误。
+- `CommandParser` 抽象类 + 20 个解析器（每命令一个类）；`CreateParser` 的 help 由图形工厂已注册的类型自动生成。
+- `CommandRegistry`（命令名 → 解析器，按名字分派之二）与分组 help。
+- `CommandInterpreter`（Invoker）：注释/空行、`error:` 前缀、内部异常兜底。
+- `Repl`：`svg>` 提示符；非交互输入时回显命令与注释（脚本回放即 transcript）；`exit` / EOF / Ctrl-C 退出；兼容 CRLF。
+- `app/SvgEditorApp`（组装根）与 `main.ts`；`npm run cli`、`npm run build && npm start` 均可运行。
+- 22 个 cli 测试（含横幅版本号与 package.json 一致的守卫测试）。
+- GUIDE 新增决定 D18–D20。
+
 ## [v0.5.0] — command 模块（Command 模式）
 
 ### Added

@@ -50,7 +50,7 @@
 | D6 | 读入的 `<g transform>`、未知属性（`font-size`、`text-anchor`、`data-*`…） | **原样保留**并在保存时写回（round-trip 不丢数据），但不可 `set` | 白名单只约束"可编辑"，不应毁坏外部文件 |
 | D7 | 读入不支持的元素（`path`、`defs`…） | 跳过并警告 `warning: skipped unsupported element <path>` | 本阶段只内置 6 种类型；不静默丢弃 |
 | D8 | 读入重复 id | 第一个保留，后续按"标签名+序号"重新分配并警告 | id 必须唯一 |
-| D9 | 读入的 viewBox 与 `0 0 w h` 不一致 | 警告并以 `0 0 w h` 为准 | 编辑器坐标模型是 1 用户单位 = 1 px |
+| D9 | 读入的 viewBox 与 `0 0 w h` 不一致 | ~~警告并以 `0 0 w h` 为准~~ → **v0.9.0 起：原样保留并警告**（坐标单位是 viewBox 单位而非画布像素）；tree 首行显示 `svg (48x48, viewBox 0 0 24 24)`；`canvas` 改尺寸时保留该 viewBox（图形随画布缩放）。等于 `0 0 w h` 的 viewBox 仍由画布尺寸决定 | 原决定会让“读入→不改动→保存”改变图标类文件的渲染（独立测试指出），与 D6“round-trip 不毁坏外部文件”冲突 |
 | D10 | `init w` / `canvas w` 只给一个参数 | 只改宽度，高度取默认（init）或保持不变（canvas）；尺寸必须为正 | `[w] [h]` 的自然解读 |
 | D11 | 尺寸类几何量（width/height/r/rx/ry）为负 | `error: <attr> must be non-negative` | SVG 规范中负尺寸是错误 |
 | D12 | `ungroup` 带属性（`transform`、`fill` 等）的容器 | 允许，但这些属性不会转移给子图形：先输出 `warning: attributes of g#x are not kept: transform, fill` | 说明文档未禁止；如实提示可能的外观变化 |

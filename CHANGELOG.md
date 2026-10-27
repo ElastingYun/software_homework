@@ -4,6 +4,13 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.9.0] — 保留自定义 viewBox（修订决定 D9）
+
+### Changed
+- 原 D9“viewBox 与 `0 0 w h` 不一致时警告并改写为 `0 0 w h`”会让典型图标文件（`width="48" viewBox="0 0 24 24"`）在“读入→不做修改→保存”后以一半大小渲染（独立黑盒测试作为设计问题指出）。这改变了一条已记录的行为决定，因此作为 MINOR 版本发布。
+  - 新行为：`SvgDocument.customViewBox` 原样保留这样的 viewBox（含无法解析的），读入时警告坐标单位是 viewBox 单位；`SvgWriter` 写回它；`tree` 首行显示 `svg (48x48, viewBox 0 0 24 24)`；`canvas` 改尺寸时保留它（图形随画布缩放）。等于 `0 0 w h` 的 viewBox 仍随画布尺寸变化。
+  - 测试：`Defects.test` 中 v0.9.0 一组（3 个用例）；`SvgReader.test` 更新期望并新增无法解析的 viewBox 用例。
+
 ## [v0.8.12] — 修正：含 XML 禁止字符的文件被读入并原样写回
 
 ### Fixed

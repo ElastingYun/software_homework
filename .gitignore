@@ -3,3 +3,6 @@ dist/
 coverage/
 *.log
 /tmp/
+# files produced by replaying the example scripts
+/examples/demo.svg
+/examples/flowchart.svg

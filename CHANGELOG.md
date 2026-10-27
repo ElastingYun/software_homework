@@ -4,6 +4,13 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.8.9] — 修正：`set` 接受无意义的表现属性值
+
+### Fixed
+- **BUG-10**（独立黑盒测试发现，低）`set r stroke-width abc`、`set r stroke-width -3`、`set r fill ""` 均被接受并写入文件，与 D22"保存的 SVG 不得含非法数值"的理由不一致。
+  - 修正：表现属性取值规则（Strategy）`StyleRule` ← `PaintRule`（非空）/ `LengthRule`（非负长度，可带单位），由 `PresentationStyle` 按属性名委托。只约束用户编辑：新增 `Shape.restoreAttribute`（不校验）供撤销与读入使用——外部文件里的 `stroke-width="calc(…)"` 原样保留，撤销永远不会因校验失败（取代原 `removeAttribute`）。
+  - 回归测试：BUG-10（13 个用例）；GUIDE 新增 D24。
+
 ## [v0.8.8] — 修正：根 `<svg>` 的 id 可与图形 id 重复
 
 ### Fixed

@@ -4,6 +4,15 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.3.0] — io 模块
+
+### Added
+- `DocumentStorage` 端口 + `LoadedDocument`；文件适配器 `SvgFileStorage`（`cannot read file` / `cannot write file`）。
+- `SvgWriter`：只经 `Shape` 通用接口序列化（无类型分支）；与说明文档 0.1 节示例逐字节一致；XML 转义、数字去噪。
+- `SvgReader`（@xmldom/xmldom）：两遍读入——先收集显式 id，再按文档序构造；缺 id 分配 `标签名+序号` 并警告，重复 id 改名并警告；不支持/外部命名空间的元素跳过并警告；`transform`、`font-size`、`data-*` 等透传属性与根元素命名空间声明原样保留；viewBox / 画布尺寸推导；非法数值宽松处理。
+- `IdAllocator`、`DomElementSource`（`ElementSource` 的 DOM 实现）。
+- 22 个 io 测试（含说明文档 `other.svg` 与 0.1 节两份 SVG 作为夹具，round-trip 校验）。
+
 ## [v0.2.0] — model 模块
 
 ### Added

@@ -4,6 +4,14 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.8.4] — 修正：带 UTF-8 BOM 的文件无法读入
+
+### Fixed
+- **BUG-5**（独立黑盒测试发现）以 BOM（`EF BB BF`）开头的合法 SVG 文件读入失败：`invalid XML: … Unexpected content outside root element`。Windows 记事本等编辑器常写入 BOM。
+  - 原因：`readFileSync(…, 'utf8')` 保留了 `\uFEFF`，xmldom 把它当成根元素之外的内容。
+  - 修正：`SvgReader` 在解析前去掉开头的 BOM。
+  - 回归测试：BUG-5（内存存储与真实文件各一例）。
+
 ## [v0.8.3] — 修正：保存时数值被四舍五入到 6 位小数
 
 ### Fixed

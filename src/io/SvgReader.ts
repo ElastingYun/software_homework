@@ -5,6 +5,7 @@ import { NumericText } from '../model/NumericText.js';
 import { SvgDocument } from '../model/SvgDocument.js';
 import type { Container } from '../model/Container.js';
 import type { ShapeFactory } from '../model/ShapeFactory.js';
+import { XmlCharacters } from '../model/XmlCharacters.js';
 import { DomElementSource } from './DomElementSource.js';
 import { IdAllocator } from './IdAllocator.js';
 import { LoadedDocument } from './LoadedDocument.js';
@@ -44,9 +45,10 @@ export class SvgReader {
   }
 
   private parse(xml: string, source: string): Element {
+    const text = xml.startsWith(SvgReader.BYTE_ORDER_MARK) ? xml.slice(1) : xml;
+    this.requireXmlCharacters(text, source);
     let root: Element | null;
     try {
-      const text = xml.startsWith(SvgReader.BYTE_ORDER_MARK) ? xml.slice(1) : xml;
       root = new DOMParser({ onError: onErrorStopParsing }).parseFromString(text, 'image/svg+xml').documentElement;
     } catch (error) {
       throw new EditorError(`cannot read file: ${source} (invalid XML: ${this.describeParseError(error)})`);
@@ -69,6 +71,17 @@ export class SvgReader {
       }
     }
     return depth;
+  }
+
+  /** XML 1.0 不允许的字符使文件不是格式良好的 XML（xmldom 对此宽松，这里补上检查）。 */
+  private requireXmlCharacters(text: string, source: string): void {
+    const index = XmlCharacters.indexOfInvalid(text);
+    if (index >= 0) {
+      const line = text.slice(0, index).split('\n').length;
+      throw new EditorError(
+        `cannot read file: ${source} (invalid XML: invalid character ${XmlCharacters.codeAt(text, index)} at line ${line})`,
+      );
+    }
   }
 
   /** 去掉 xmldom 包装在错误消息外层的内部措辞，只保留对用户有意义的原因。 */

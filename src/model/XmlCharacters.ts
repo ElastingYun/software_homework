@@ -12,11 +12,20 @@ export class XmlCharacters {
 
   /** 含有无法表示的字符时抛出 `invalid character U+XXXX in <what>`。 */
   static require(value: string, what: string): string {
-    const match = XmlCharacters.FORBIDDEN.exec(value);
-    if (match !== null) {
-      const code = (match[0].codePointAt(0) as number).toString(16).toUpperCase().padStart(4, '0');
-      throw new EditorError(`invalid character U+${code} in ${what}`);
+    const index = XmlCharacters.indexOfInvalid(value);
+    if (index >= 0) {
+      throw new EditorError(`invalid character ${XmlCharacters.codeAt(value, index)} in ${what}`);
     }
     return value;
+  }
+
+  /** 第一个无法表示的字符的下标，没有则为 -1。 */
+  static indexOfInvalid(value: string): number {
+    return XmlCharacters.FORBIDDEN.exec(value)?.index ?? -1;
+  }
+
+  /** 形如 `U+0001`。 */
+  static codeAt(value: string, index: number): string {
+    return `U+${(value.codePointAt(index) as number).toString(16).toUpperCase().padStart(4, '0')}`;
   }
 }

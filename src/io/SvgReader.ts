@@ -49,8 +49,7 @@ export class SvgReader {
       const text = xml.startsWith(SvgReader.BYTE_ORDER_MARK) ? xml.slice(1) : xml;
       root = new DOMParser({ onError: onErrorStopParsing }).parseFromString(text, 'image/svg+xml').documentElement;
     } catch (error) {
-      const reason = error instanceof Error ? (error.message.split('\n')[0] ?? '') : String(error);
-      throw new EditorError(`cannot read file: ${source} (invalid XML: ${reason})`);
+      throw new EditorError(`cannot read file: ${source} (invalid XML: ${this.describeParseError(error)})`);
     }
     if (root === null || root.localName !== 'svg' || !this.inSvgNamespace(root)) {
       throw new EditorError(`cannot read file: ${source} (root element is not <svg>)`);
@@ -70,6 +69,16 @@ export class SvgReader {
       }
     }
     return depth;
+  }
+
+  /** 去掉 xmldom 包装在错误消息外层的内部措辞，只保留对用户有意义的原因。 */
+  private describeParseError(error: unknown): string {
+    const message = error instanceof Error ? (error.message.split('\n')[0] ?? '') : String(error);
+    const reported = /^Reporting error "(.*)" caused onErrorStopParsing$/.exec(message);
+    if (reported !== null) {
+      return reported[1] as string;
+    }
+    return message.replace(/^Error constructing the DOM: NamespaceError: /, 'namespace error: ');
   }
 
   private canvasSize(root: Element, warnings: string[]): [number, number] {

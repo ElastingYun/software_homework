@@ -11,6 +11,23 @@ export class TreeRenderer {
   private static readonly LAST_BRANCH = '└── ';
   private static readonly PIPE = '│   ';
   private static readonly SPACE = '    ';
+  /** Unicode East Asian Width 为 W / F 的主要区段。 */
+  private static readonly WIDE_RANGES: ReadonlyArray<[number, number]> = [
+    [0x1100, 0x115f],
+    [0x2e80, 0x303e],
+    [0x3041, 0x33ff],
+    [0x3400, 0x4dbf],
+    [0x4e00, 0x9fff],
+    [0xa000, 0xa4cf],
+    [0xac00, 0xd7a3],
+    [0xf900, 0xfaff],
+    [0xfe30, 0xfe4f],
+    [0xff00, 0xff60],
+    [0xffe0, 0xffe6],
+    [0x1f300, 0x1f64f],
+    [0x1f900, 0x1f9ff],
+    [0x20000, 0x3fffd],
+  ];
 
   /** 整个文档，首行为 `svg (800x600)`。 */
   renderDocument(document: SvgDocument): string[] {
@@ -42,8 +59,16 @@ export class TreeRenderer {
     );
   }
 
-  /** 按码点计宽（避免代理对把一个字符算成 2）。 */
+  /** 终端显示宽度：按码点计数，东亚宽字符（中日韩文字、全角符号等）占 2 列。 */
   private width(text: string): number {
-    return [...text].length;
+    let width = 0;
+    for (const character of text) {
+      width += this.isWide(character.codePointAt(0) as number) ? 2 : 1;
+    }
+    return width;
+  }
+
+  private isWide(code: number): boolean {
+    return TreeRenderer.WIDE_RANGES.some(([from, to]) => code >= from && code <= to);
   }
 }

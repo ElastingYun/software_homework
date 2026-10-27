@@ -92,15 +92,23 @@ describe('attribute whitelist (set)', () => {
     expect(() => circle.getAttribute('opacity')).toThrow('unknown attribute: opacity');
   });
 
-  it('style attributes can be set, described and removed', () => {
+  it('style attributes can be set, described and restored to unset', () => {
     const circle = factory.create('circle', 'c', ['0', '0', '1']);
     expect(circle.getAttribute('fill')).toBeUndefined();
     expect(circle.describeAttribute('fill')).toBe('fill unset');
     circle.setAttribute('fill', 'red');
     expect(circle.describeAttribute('fill')).toBe('fill=red');
-    circle.removeAttribute('fill');
+    circle.restoreAttribute('fill', undefined);
     expect(circle.getAttribute('fill')).toBeUndefined();
-    expect(() => circle.removeAttribute('r')).toThrow('cannot remove attribute: r');
+    expect(() => circle.restoreAttribute('r', undefined)).toThrow('cannot remove attribute: r');
+  });
+
+  it('set validates style values; restore keeps any value', () => {
+    const circle = factory.create('circle', 'c', ['0', '0', '1']);
+    expect(() => circle.setAttribute('stroke-width', 'thick')).toThrow('invalid stroke-width: thick');
+    expect(() => circle.setAttribute('fill', '')).toThrow('fill must not be empty');
+    circle.restoreAttribute('stroke-width', 'thick');
+    expect(circle.getAttribute('stroke-width')).toBe('thick');
   });
 
   it('text content is settable and quoted in descriptions', () => {

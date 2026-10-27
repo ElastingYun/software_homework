@@ -1,14 +1,29 @@
+import { LengthRule } from './LengthRule.js';
+import { PaintRule } from './PaintRule.js';
+import type { StyleRule } from './StyleRule.js';
+
 /**
  * 所有图形共有、可经 `set` 编辑的表现属性：fill / stroke / stroke-width。
  * 未设置的属性不写入 SVG（外观遵循渲染默认值）。
  */
 export class PresentationStyle {
-  static readonly ATTRIBUTES: readonly string[] = ['fill', 'stroke', 'stroke-width'];
+  private static readonly RULES: ReadonlyMap<string, StyleRule> = new Map<string, StyleRule>([
+    ['fill', PaintRule.INSTANCE],
+    ['stroke', PaintRule.INSTANCE],
+    ['stroke-width', LengthRule.INSTANCE],
+  ]);
+
+  static readonly ATTRIBUTES: readonly string[] = [...PresentationStyle.RULES.keys()];
 
   private readonly values = new Map<string, string>();
 
   static accepts(name: string): boolean {
-    return PresentationStyle.ATTRIBUTES.includes(name);
+    return PresentationStyle.RULES.has(name);
+  }
+
+  /** 用户编辑的取值校验；不合法时抛出 EditorError。 */
+  static validate(name: string, value: string): void {
+    PresentationStyle.RULES.get(name)?.validate(name, value);
   }
 
   get(name: string): string | undefined {

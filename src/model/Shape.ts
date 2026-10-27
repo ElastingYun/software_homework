@@ -103,18 +103,30 @@ export abstract class Shape {
   /** 校验后写入；校验失败抛出 EditorError 且不改变状态。 */
   setAttribute(name: string, value: string): void {
     if (PresentationStyle.accepts(name)) {
+      PresentationStyle.validate(name, value);
       this.style.set(name, XmlCharacters.require(value, name));
       return;
     }
     this.writeOwnAttribute(name, value);
   }
 
-  /** 移除可选属性（仅表现属性可移除；用于撤销"从无到有"的 set）。 */
-  removeAttribute(name: string): void {
-    if (!PresentationStyle.accepts(name)) {
+  /**
+   * 原样恢复一个属性值（undefined 表示未设置），不做取值规则校验。
+   * 用于撤销（值来自 getAttribute）与读入（值来自外部文件，按 GUIDE D6 原样保留）。
+   */
+  restoreAttribute(name: string, value: string | undefined): void {
+    if (PresentationStyle.accepts(name)) {
+      if (value === undefined) {
+        this.style.remove(name);
+      } else {
+        this.style.set(name, value);
+      }
+      return;
+    }
+    if (value === undefined) {
       throw new EditorError(`cannot remove attribute: ${name}`);
     }
-    this.style.remove(name);
+    this.writeOwnAttribute(name, value);
   }
 
   /** 回显用的"名=值"，如 `fill=red`、`x=10`、`text="Hi"`；未设置时为 `fill unset`。 */

@@ -36,13 +36,13 @@ export class ShapeFactory {
     return shapeClass.fromParams(id, new ShapeParams(params, shapeClass.createSyntax));
   }
 
-  /** 读入：由 SVG 元素构造图形；表现属性与透传属性对所有类型统一处理。 */
+  /** 读入：由 SVG 元素构造图形；表现属性与透传属性对所有类型统一处理，取值原样保留。 */
   fromElement(typeName: string, source: ElementSource): Shape {
     const shape = this.require(typeName).fromElement(source);
     for (const name of PresentationStyle.ATTRIBUTES) {
       const value = source.take(name);
       if (value !== undefined) {
-        shape.setAttribute(name, value);
+        shape.restoreAttribute(name, value);
       }
     }
     for (const [name, value] of source.remaining()) {

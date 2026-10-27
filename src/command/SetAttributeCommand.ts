@@ -26,11 +26,7 @@ export class SetAttributeCommand extends EditCommand {
 
   undo(): string[] {
     const shape = this.target as Shape;
-    if (this.previous === undefined) {
-      shape.removeAttribute(this.attribute);
-    } else {
-      shape.setAttribute(this.attribute, this.previous);
-    }
+    shape.restoreAttribute(this.attribute, this.previous);
     return [this.report(shape)];
   }
 

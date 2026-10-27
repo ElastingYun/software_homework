@@ -4,6 +4,13 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.8.12] — 修正：含 XML 禁止字符的文件被读入并原样写回
+
+### Fixed
+- **BUG-13**（排查 BUG-12 时自行发现）xmldom 对 XML 1.0 禁止的字符（如 U+0001）是宽松的：`<rect fill="re\x01d"/>` 这样**不是格式良好 XML** 的文件能被读入，保存后得到同样非法的文件——BUG-8 只堵住了命令行输入这条路。
+  - 修正：`SvgReader` 在解析前检查整个文本，按 XML 规范拒绝：`cannot read file: x.svg (invalid XML: invalid character U+0001 at line 2)`；`XmlCharacters` 提供 `indexOfInvalid` / `codeAt` 供两条路径共用。
+  - 回归测试：BUG-13（2 个用例）。
+
 ## [v0.8.11] — 修正（外观）：错误信息夹带解析器内部措辞；中文 id 的树对不齐
 
 ### Fixed

@@ -37,6 +37,10 @@ export class CanvasRoot implements Container {
     this.preserved.set(name, value);
   }
 
+  preservedAttribute(name: string): string | undefined {
+    return this.preserved.get(name);
+  }
+
   preservedAttributes(): Array<[string, string]> {
     return [...this.preserved.entries()];
   }

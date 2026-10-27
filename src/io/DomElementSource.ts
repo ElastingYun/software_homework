@@ -14,10 +14,15 @@ export class DomElementSource implements ElementSource {
   ) {
     for (let i = 0; i < element.attributes.length; i++) {
       const attribute = element.attributes.item(i);
-      if (attribute !== null && attribute.name !== 'id') {
+      if (attribute !== null && attribute.name !== 'id' && !DomElementSource.isNamespaceDeclaration(attribute.name)) {
         this.pending.set(attribute.name, attribute.value);
       }
     }
+  }
+
+  /** `xmlns` / `xmlns:p` 由读入方统一提升到根元素，不作为图形的透传属性。 */
+  static isNamespaceDeclaration(name: string): boolean {
+    return name === 'xmlns' || name.startsWith('xmlns:');
   }
 
   number(name: string): number {

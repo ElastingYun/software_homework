@@ -141,6 +141,7 @@ export class SvgReader {
         continue;
       }
       const id = this.resolveId(child, tag, allocator, warnings);
+      this.hoistNamespaces(child, id, document, warnings);
       let shape;
       try {
         shape = this.factory.fromElement(tag, new DomElementSource(child, id, warnings));
@@ -155,6 +156,28 @@ export class SvgReader {
       const nested = shape.asContainer();
       if (nested !== null) {
         this.readChildren(child, nested, document, allocator, warnings);
+      }
+    }
+  }
+
+  /**
+   * 把元素上的 `xmlns:p` 声明提升到根元素：图形之后被 ungroup / addto 移到别处时，
+   * 其带前缀的透传属性仍在声明作用域内，保存的文件始终是合法 XML。
+   */
+  private hoistNamespaces(element: Element, id: string, document: SvgDocument, warnings: string[]): void {
+    for (let i = 0; i < element.attributes.length; i++) {
+      const attribute = element.attributes.item(i);
+      if (attribute === null || !attribute.name.startsWith('xmlns:')) {
+        continue;
+      }
+      const existing = document.root.preservedAttribute(attribute.name);
+      if (existing === undefined) {
+        document.root.preserveAttribute(attribute.name, attribute.value);
+      } else if (existing !== attribute.value) {
+        const prefix = attribute.name.slice('xmlns:'.length);
+        warnings.push(
+          `namespace prefix ${prefix} on <${element.localName} id=${id}> rebinds "${existing}" to "${attribute.value}"; keeping "${existing}"`,
+        );
       }
     }
   }

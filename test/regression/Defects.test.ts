@@ -366,3 +366,36 @@ describe('BUG-13 (fixed in v0.8.12): files with characters XML forbids were read
     expect(session.run('read ok.svg')).toEqual(['read ok.svg (0 elements)']);
   });
 });
+
+describe('v0.9.0 (decision D9 revised): a custom viewBox is kept instead of being rewritten', () => {
+  const icon = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><circle id="c" cx="12" cy="12" r="10"/></svg>';
+
+  it('read → save does not change how the drawing renders', () => {
+    const session = new CliSession();
+    session.storage.files.set('icon.svg', icon);
+    expect(session.run('read icon.svg')).toEqual([
+      'warning: viewBox "0 0 24 24" kept: coordinates are in viewBox units, not canvas pixels',
+      'read icon.svg (1 element)',
+    ]);
+    session.run('save');
+    expect(session.file('icon.svg')).toContain('<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">');
+  });
+
+  it('tree shows the viewBox; canvas resize keeps it (the drawing scales with the canvas)', () => {
+    const session = new CliSession();
+    session.storage.files.set('icon.svg', icon);
+    session.run('read icon.svg');
+    expect(session.run('tree')[0]).toBe('svg (48x48, viewBox 0 0 24 24)');
+    session.run('canvas 96 96', 'save');
+    expect(session.file('icon.svg')).toContain('width="96" height="96" viewBox="0 0 24 24"');
+  });
+
+  it('a viewBox equal to 0 0 w h stays managed: it follows canvas resizes and is not reported', () => {
+    const session = new CliSession();
+    session.storage.files.set('plain.svg', '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="30" viewBox="0 0 40 30"/>');
+    expect(session.run('read plain.svg')).toEqual(['read plain.svg (0 elements)']);
+    session.run('canvas 80 60', 'save');
+    expect(session.file('plain.svg')).toContain('width="80" height="60" viewBox="0 0 80 60"');
+    expect(session.run('tree')).toEqual(['svg (80x60)']);
+  });
+});

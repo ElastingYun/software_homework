@@ -95,9 +95,17 @@ describe('SvgReader', () => {
     expect(loaded.warnings).toEqual(['canvas size not specified, using 800x600']);
   });
 
-  it('warns when the viewBox is not 0 0 w h', () => {
+  it('keeps a viewBox that is not 0 0 w h, with a warning (D9, revised in v0.9.0)', () => {
     const loaded = reader.read(svg('', 'width="400" height="200" viewBox="0 0 100 50"'), 'x.svg');
-    expect(loaded.warnings).toEqual(['viewBox "0 0 100 50" ignored, using "0 0 400 200"']);
+    expect(loaded.warnings).toEqual(['viewBox "0 0 100 50" kept: coordinates are in viewBox units, not canvas pixels']);
+    expect(loaded.document.customViewBox).toBe('0 0 100 50');
+    expect(writer.write(loaded.document)).toContain('width="400" height="200" viewBox="0 0 100 50">');
+  });
+
+  it('keeps an unparseable viewBox as-is', () => {
+    const loaded = reader.read(svg('', 'width="4" height="2" viewBox="0 0 oops"'), 'x.svg');
+    expect(loaded.warnings).toEqual(['viewBox "0 0 oops" is not valid, kept as-is']);
+    expect(loaded.document.customViewBox).toBe('0 0 oops');
   });
 
   it('lenient numbers: px accepted, garbage warned and replaced by 0', () => {

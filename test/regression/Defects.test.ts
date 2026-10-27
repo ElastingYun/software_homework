@@ -238,3 +238,23 @@ describe('BUG-7 (fixed in v0.8.6): text whitespace changed on a save/read round 
     expect(session.file('n.svg')).not.toContain('xml:space');
   });
 });
+
+describe('BUG-8 (fixed in v0.8.7): characters that XML cannot represent were accepted', () => {
+  it.each([
+    ['create text t 0 0 "a\u0001b"', 'invalid character U+0001 in text'],
+    ['create rect "r\u0000" 0 0 1 1', 'invalid character U+0000 in id'],
+    ['set c fill "re\u001Fd"', 'invalid character U+001F in fill'],
+    ['set label text "x\uFFFE"', 'invalid character U+FFFE in text'],
+    ['set label text "\uD800"', 'invalid character U+D800 in text'],
+  ])('%j is rejected', (line, message) => {
+    const session = new CliSession();
+    session.run('init', 'create circle c 0 0 1', 'create text label 0 0 "ok"');
+    session.expectError(line, message);
+  });
+
+  it('tabs, newlines, CJK and emoji are fine', () => {
+    const session = new CliSession();
+    session.run('init');
+    expect(session.run('create text t 0 0 "tab\there 中文 😀"')).toEqual(['text#t created']);
+  });
+});

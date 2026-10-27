@@ -145,9 +145,10 @@ export class SvgReader {
       }
       const id = this.resolveId(child, tag, allocator, warnings);
       this.hoistNamespaces(child, id, document, warnings);
+      const source = new DomElementSource(child, id, warnings);
       let shape;
       try {
-        shape = this.factory.fromElement(tag, new DomElementSource(child, id, warnings));
+        shape = this.factory.fromElement(tag, source);
       } catch (error) {
         if (error instanceof EditorError) {
           warnings.push(`skipped <${tag} id=${id}>: ${error.message}`);
@@ -159,6 +160,8 @@ export class SvgReader {
       const nested = shape.asContainer();
       if (nested !== null) {
         this.readChildren(child, nested, document, allocator, warnings);
+      } else {
+        this.reportDroppedChildren(source, tag, id, warnings);
       }
     }
   }
@@ -182,6 +185,14 @@ export class SvgReader {
           `namespace prefix ${prefix} on <${element.localName} id=${id}> rebinds "${existing}" to "${attribute.value}"; keeping "${existing}"`,
         );
       }
+    }
+  }
+
+  /** 叶子图形没有子节点：其中未被用作文本的子元素无法保留，如实警告（GUIDE D7）。 */
+  private reportDroppedChildren(source: DomElementSource, tag: string, id: string, warnings: string[]): void {
+    const dropped = source.unusedChildElements();
+    if (dropped.length > 0) {
+      warnings.push(`dropped child elements of <${tag} id=${id}>: ${dropped.map((name) => `<${name}>`).join(', ')}`);
     }
   }
 

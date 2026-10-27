@@ -4,6 +4,14 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.7.1] — 修正：几何量溢出为 Infinity
+
+### Fixed
+- **BUG-1** `scale` / `move` 的结果可能溢出为 `Infinity`（如 `create circle c 1e300 0 1e300` 后 `scale c 1e10`）：tree 显示 `cx=Infinity`，保存出 `cx="Infinity"` 的非法 SVG，读回时被当作 0，数据静默丢失。
+  - 原因：输入数字有严格的有限性校验（`NumericText`），但运算结果没有；容器的递归操作也不是原子的。
+  - 修正：`Geometry.translate/scale` 先计算全部新值并检查有限性，再一次性写入（`error: cx out of range`）；`GroupShape.moveBy/scaleBy` 在任一子图形失败时用备忘录恢复整棵子树——"全有或全无"由模型自身保证，而不是依赖调用方。
+  - 回归测试：`test/regression/Defects.test.ts` BUG-1（4 个用例，含"容器不会被缩放一半"）。
+
 ## [v0.7.0] — 系统测试
 
 ### Added

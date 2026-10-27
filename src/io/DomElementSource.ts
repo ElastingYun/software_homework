@@ -1,6 +1,7 @@
 import type { Element, Node } from '@xmldom/xmldom';
 import { NumericText } from '../model/NumericText.js';
 import type { ElementSource } from '../model/ElementSource.js';
+import { SvgWhitespace } from './SvgWhitespace.js';
 
 /** 以 DOM 元素实现 ElementSource：按需消费属性与子元素，宽松解析数值并记录警告。 */
 export class DomElementSource implements ElementSource {
@@ -66,7 +67,8 @@ export class DomElementSource implements ElementSource {
     if (this.consumedChildren.size > 0) {
       this.warnings.push(`flattened nested elements in <${this.element.localName} id=${this.id}>`);
     }
-    return parts.join('').replace(/\s+/g, ' ').trim();
+    const text = parts.join('');
+    return this.preservesSpace() ? text : SvgWhitespace.collapse(text);
   }
 
   remaining(): Array<[string, string]> {
@@ -78,6 +80,17 @@ export class DomElementSource implements ElementSource {
     return this.childNodes(this.element)
       .filter((child) => child.nodeType === DomElementSource.ELEMENT_NODE && !this.consumedChildren.has(child))
       .map((child) => (child as Element).tagName);
+  }
+
+  /** 最近的 xml:space 声明（自身或祖先）是否为 preserve。 */
+  private preservesSpace(): boolean {
+    for (let node: Node | null = this.element; node !== null && node.nodeType === DomElementSource.ELEMENT_NODE; node = node.parentNode) {
+      const value = (node as Element).getAttribute('xml:space');
+      if (value === 'preserve' || value === 'default') {
+        return value === 'preserve';
+      }
+    }
+    return false;
   }
 
   private childNodes(node: Node): Node[] {

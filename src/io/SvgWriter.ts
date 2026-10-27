@@ -1,6 +1,7 @@
 import { NumericText } from '../model/NumericText.js';
 import type { Shape } from '../model/Shape.js';
 import type { SvgDocument } from '../model/SvgDocument.js';
+import { SvgWhitespace } from './SvgWhitespace.js';
 
 /**
  * 文档 → SVG 文本。只通过 Shape 的通用接口（tagName / svgAttributes / textContent / children）
@@ -30,8 +31,9 @@ export class SvgWriter {
 
   private writeShape(shape: Shape, depth: number, lines: string[]): void {
     const indent = SvgWriter.INDENT.repeat(depth);
-    const open = `${indent}<${shape.tagName}${this.attributes(shape.svgAttributes())}`;
     const text = shape.textContent();
+    const attributes = text === null ? shape.svgAttributes() : this.withSpacePolicy(shape.svgAttributes(), text);
+    const open = `${indent}<${shape.tagName}${this.attributes(attributes)}`;
     const children = shape.children();
     if (text !== null) {
       lines.push(`${open}>${this.escapeText(text)}</${shape.tagName}>`);
@@ -44,6 +46,14 @@ export class SvgWriter {
       }
       lines.push(`${indent}</${shape.tagName}>`);
     }
+  }
+
+  /** 文本依赖首尾或连续空白时声明 xml:space="preserve"，保证读回后内容不变。 */
+  private withSpacePolicy(attributes: Array<[string, string]>, text: string): Array<[string, string]> {
+    if (!SvgWhitespace.isSignificant(text)) {
+      return attributes;
+    }
+    return [...attributes.filter(([name]) => name !== 'xml:space'), ['xml:space', 'preserve']];
   }
 
   private attributes(entries: ReadonlyArray<[string, string]>): string {

@@ -16,6 +16,8 @@ import { SvgWriter } from './SvgWriter.js';
  */
 export class SvgReader {
   private static readonly ELEMENT_NODE = 1;
+  /** Windows 编辑器常在 UTF-8 文件开头写入 BOM；XML 规范允许它出现，解析前去掉。 */
+  private static readonly BYTE_ORDER_MARK = '\uFEFF';
   private static readonly MANAGED_ROOT_ATTRIBUTES = new Set(['xmlns', 'width', 'height', 'viewBox']);
 
   constructor(private readonly factory: ShapeFactory) {}
@@ -40,7 +42,8 @@ export class SvgReader {
   private parse(xml: string, source: string): Element {
     let root: Element | null;
     try {
-      root = new DOMParser({ onError: onErrorStopParsing }).parseFromString(xml, 'image/svg+xml').documentElement;
+      const text = xml.startsWith(SvgReader.BYTE_ORDER_MARK) ? xml.slice(1) : xml;
+      root = new DOMParser({ onError: onErrorStopParsing }).parseFromString(text, 'image/svg+xml').documentElement;
     } catch (error) {
       const reason = error instanceof Error ? (error.message.split('\n')[0] ?? '') : String(error);
       throw new EditorError(`cannot read file: ${source} (invalid XML: ${reason})`);

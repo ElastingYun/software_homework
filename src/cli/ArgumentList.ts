@@ -45,14 +45,18 @@ export class ArgumentList {
     return this.tokens.slice(index).map((token) => token.text);
   }
 
-  /** 末尾的 `in <containerId>` 子句：返回 [去掉子句后的参数, 容器 id 或 null]。 */
+  /**
+   * 末尾的 `in <containerId>` 子句：返回 [去掉子句后的参数, 容器 id 或 null]。
+   * `in` 只有作为至少 4 个参数（type id in container）中的倒数第二个时才是关键字，
+   * 因此 `create g in` 可以创建名为 in 的容器；末尾悬空的 `in`（缺容器 id）报 usage。
+   */
   splitInClause(): [ArgumentList, string | null] {
     const count = this.tokens.length;
-    if (count > 0 && this.tokens[count - 1]?.is('in')) {
-      throw this.usage();
-    }
-    if (count >= 2 && this.tokens[count - 2]?.is('in')) {
+    if (count >= 4 && this.tokens[count - 2]?.is('in')) {
       return [new ArgumentList(this.tokens.slice(0, count - 2), this.syntax), this.text(count - 1)];
+    }
+    if (count >= 3 && this.tokens[count - 1]?.is('in')) {
+      throw this.usage();
     }
     return [this, null];
   }

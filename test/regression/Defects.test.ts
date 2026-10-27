@@ -283,3 +283,36 @@ describe('BUG-9 (fixed in v0.8.8): the root <svg id> could be duplicated by a sh
     expect(session.file('r.svg').match(/id="root"/g)).toHaveLength(1);
   });
 });
+
+describe('BUG-10 (fixed in v0.8.9): set accepted meaningless style values', () => {
+  it.each([
+    ['set r stroke-width abc', 'invalid stroke-width: abc'],
+    ['set r stroke-width -3', 'invalid stroke-width: -3'],
+    ['set r stroke-width 2px3', 'invalid stroke-width: 2px3'],
+    ['set r fill ""', 'fill must not be empty'],
+    ['set r stroke "  "', 'stroke must not be empty'],
+  ])('%s is rejected', (line, message) => {
+    const session = new CliSession();
+    session.run('init', 'create rect r 0 0 1 1');
+    session.expectError(line, message);
+  });
+
+  it.each(['2', '0.5', '1e1', '2px', '0.1em', '50%', '3mm'])('stroke-width %s is accepted', (value) => {
+    const session = new CliSession();
+    session.run('init', 'create rect r 0 0 1 1');
+    expect(session.run(`set r stroke-width ${value}`)).toEqual([`rect#r updated: stroke-width=${value}`]);
+  });
+
+  it('unusual values from files are kept as-is, and undo can always restore them', () => {
+    const session = new CliSession();
+    session.storage.files.set(
+      'u.svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><rect id="r" stroke-width="calc(1px + 1px)" fill=""/></svg>',
+    );
+    expect(session.run('read u.svg')).toEqual(['read u.svg (1 element)']);
+    session.run('set r stroke-width 2', 'set r fill red');
+    expect(session.run('undo', 'undo')).toEqual(['rect#r updated: fill=', 'rect#r updated: stroke-width=calc(1px + 1px)']);
+    session.run('save');
+    expect(session.file('u.svg')).toContain('<rect id="r" x="0" y="0" width="0" height="0" fill="" stroke-width="calc(1px + 1px)"/>');
+  });
+});

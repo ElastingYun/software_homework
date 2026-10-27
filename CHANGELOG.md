@@ -4,6 +4,19 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.5.0] — command 模块（Command 模式）
+
+### Added
+- `Command` 接口与三个模板方法基类：`EditCommand`（执行后入 undo 栈、清空 redo）、`DocumentCommand`（执行后设历史屏障）、`QueryCommand`（只读）。
+- `CommandHistory`：undo / redo 栈；IO 屏障（`undo not allowed after io command`）；`nothing to undo/redo`。
+- `EditorContext`：当前文档与路径、历史、存储端口、退出标志。
+- 编辑命令：`CreateShapeCommand`、`DeleteShapeCommand`、`MoveShapeCommand`、`ScaleShapeCommand`、`SetAttributeCommand`、`GroupShapesCommand`、`UngroupCommand`、`AddToGroupCommand`、`BringToFrontCommand` / `SendToBackCommand`（共同基类 `ReorderCommand`）。
+- 文档命令：`InitDocumentCommand`、`ReadDocumentCommand`、`SaveDocumentCommand`、`ResizeCanvasCommand`；显示命令：`ShowCanvasCommand`、`TreeCommand`、`ShowShapeCommand`、`HelpCommand`；`UndoCommand`、`RedoCommand`、`ExitCommand`。
+- 80 个命令层测试：每条编辑命令执行/撤销/重做的逐字节状态比对；说明文档 4.2 错误表与"命令失败不改变任何状态"（文档 + 历史 + 路径快照）。
+
+### Changed
+- GUIDE D12 推广为"ungroup 时容器的任何属性都不会转移，输出警告"。
+
 ## [v0.4.0] — view 模块
 
 ### Added

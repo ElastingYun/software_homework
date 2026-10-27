@@ -53,7 +53,7 @@
 | D9 | 读入的 viewBox 与 `0 0 w h` 不一致 | 警告并以 `0 0 w h` 为准 | 编辑器坐标模型是 1 用户单位 = 1 px |
 | D10 | `init w` / `canvas w` 只给一个参数 | 只改宽度，高度取默认（init）或保持不变（canvas）；尺寸必须为正 | `[w] [h]` 的自然解读 |
 | D11 | 尺寸类几何量（width/height/r/rx/ry）为负 | `error: <attr> must be non-negative` | SVG 规范中负尺寸是错误 |
-| D12 | `ungroup` 带 `transform` 的容器 | 允许，但子图形会丢失该变换：输出警告 | 说明文档未禁止；如实提示 |
+| D12 | `ungroup` 带属性（`transform`、`fill` 等）的容器 | 允许，但这些属性不会转移给子图形：先输出 `warning: attributes of g#x are not kept: transform, fill` | 说明文档未禁止；如实提示可能的外观变化 |
 | D13 | `addto` 把容器放进自己或子孙 | `error: cannot move a container into its own descendant: <id>` | 防止成环 |
 | D14 | tree 的摘要列对齐 | 所有行的摘要从同一列开始：`max(前缀+标签宽度) + 2`，过长时至少 1 空格 | 与说明文档主 transcript 逐字一致 |
 | D15 | 说明文档未给出的回显（scale、addto、front、undo create…） | 统一句式 `<tag>#<id> <动词短语>`，见 `test/` 中的期望输出 | 与已给出的回显风格一致 |

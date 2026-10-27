@@ -136,6 +136,12 @@ app ──► cli ──► command ──► view ──► model
 ### P3（v0.2.0）撤销 move/scale 不用反向运算
 最初的想法是 `undo move` 执行 `moveBy(-dx,-dy)`、`undo scale` 乘以 `1/factor`。写测试时用 `0.1 + 0.2 - 0.2` 验证发现结果是 `0.10000000000000003`，undo 后与原值不相等；`scale 3` 再乘 `1/3` 同样有误差。改为 Memento：执行前对几何量做快照，undo 精确恢复（`Geometry.test.ts` 中有对应用例）。同理 `set` 的撤销保存完整精度的原始字符串（`String(number)` 可无损往返），显示时才格式化。
 
+### P5（v0.5.0）命令只接收类型化参数：把"构造图形"从命令里拿出去
+最初的设计是 `CreateShapeCommand(type, id, params: string[], containerId)`，在执行时通过 `EditorContext` 里的 `ShapeFactory` 构造图形。写到一半发现两个问题：① 命令仍然认识 CLI 的文本参数，未来 agent / 鼠标通道必须伪造一串 token 才能创建图形，违背 V2；② `EditorContext` 因此要持有工厂，职责变杂。改为 `CreateShapeCommand(shape: Shape, containerId)`：由 CLI 解析器调用工厂构造好图形再交给命令，命令层所有构造参数都是 id、数字或领域对象。代价是"参数错误"会先于"没有文档"报出，这一点可接受并在测试中固定。
+
+### P6（v0.5.0）结构性撤销：按"逆序回放"而不是"重新排序"
+`group` 的撤销最初打算"把每个成员按原下标升序插回"。推演多个成员来自同一容器、且新容器插在第一个成员位置时，下标会互相影响，需要额外的排序与偏移修正，很容易出错。改为：执行时记录**每一步** `relocate` 返回的原位置，撤销时按**相反顺序**逐步回放——每一步都是上一步的精确逆操作，正确性不依赖任何下标推理。`ungroup`、`addto`、`front/back`、`delete` 统一采用该方法；测试 `roundTrip()` 断言"undo 后文档序列化结果与执行前逐字节相同"。
+
 ### P4（v0.2.0）开发环境：网络文件系统过慢
 工程目录位于网络文件系统上，`git commit` 约 2 分钟、`depcruise` 约 5 分钟、`vitest` 75 秒。改为在本地磁盘的克隆中开发，每个版本打 tag 后用 `git pull` 同步回交付目录；两边提交历史完全一致。
 

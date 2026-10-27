@@ -64,6 +64,7 @@
 | D20 | `show` 中几何属性的名字 | 用真实属性名（`width=10`），tree 中用缩写（`w=10`） | show 的输出可直接对应 `set` 的属性名 |
 | D21 | `scale` 是否缩放 `stroke-width`、读入的 `font-size` | 不缩放：只乘 4.1 节白名单中的几何属性（位置与尺寸） | 说明文档把 stroke-width 列为表现属性而非几何属性；透传属性不可编辑 |
 | D22 | 运算结果溢出（如 `scale` 到 `Infinity`） | 拒绝：`error: <attr> out of range`，状态不变（v0.7.1，BUG-1） | 保存的 SVG 不得含非法数值 |
+| D23 | 嵌套深度 | 最多 500 层（`error: nesting too deep (at most 500 levels)`），读入时超限的文件被拒绝（v0.8.1，BUG-2） | 让所有递归算法深度有界；真实 SVG 极少超过几十层 |
 
 ## 5. 版本与里程碑（git tag）
 

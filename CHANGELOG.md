@@ -4,6 +4,14 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.8.1] — 修正：极深嵌套导致命令执行到一半时栈溢出、状态损坏
+
+### Fixed
+- **BUG-2**（独立黑盒测试发现）嵌套约 2200 层的 `g` 链上执行 `delete g0` 报 `internal error: Maximum call stack size exceeded`，且此时 g0 已从树中摘出但 id 仍在索引中：`tree` 为空、`show g0` 显示 `parent=(detached)`、`save` 写出空文件——违反"命令失败不改变任何状态"。
+  - 原因：Composite 上的算法（先序遍历、备忘录、渲染、序列化）都是递归的，深度不受限；`detach` 又是"先摘出、再遍历子树"，遍历溢出时修改已发生一半。
+  - 修正：`SvgDocument` 新增第三条不变量"嵌套不超过 `MAX_DEPTH`（500）层"，在 `attach` / `relocate` 修改之前检查（`error: nesting too deep (at most 500 levels)`），`group` 在修改前预检；`heightOf` / `depthOf` 迭代实现；`detach` 改为先计算子树再修改；读入时先以迭代方式测量嵌套深度，超限文件在任何递归之前被拒绝。由此所有递归算法的深度都有界（500 层下全部操作经测试可用，留有约 4 倍栈余量）。
+  - 回归测试：BUG-2（4 个用例，含 50 000 层的文件也能干净地报错）；`SvgDocument.test` 固定层级语义。
+
 ## [v0.8.0] — 架构 / 范式守卫测试
 
 ### Added

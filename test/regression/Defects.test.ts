@@ -171,3 +171,42 @@ describe('BUG-5 (fixed in v0.8.4): files starting with a UTF-8 byte order mark c
     expect(new SvgEditorApp().interpreter.interpret(`read "${path}"`)).toEqual([`read ${path} (0 elements)`]);
   });
 });
+
+describe('BUG-6 (fixed in v0.8.5): child elements of leaf shapes were dropped silently', () => {
+  function read(body: string): CliSession {
+    const session = new CliSession();
+    session.storage.files.set('leaf.svg', `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">${body}</svg>`);
+    session.run('read leaf.svg');
+    return session;
+  }
+
+  it('warns about every dropped child of a leaf', () => {
+    const session = new CliSession();
+    session.storage.files.set(
+      'leaf.svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">' +
+        '<rect id="r"><title>tip</title><animate attributeName="x"/></rect><circle id="c" r="1"><rect id="inner"/></circle></svg>',
+    );
+    expect(session.run('read leaf.svg')).toEqual([
+      'warning: dropped child elements of <rect id=r>: <title>, <animate>',
+      'warning: dropped child elements of <circle id=c>: <rect>',
+      'read leaf.svg (2 elements)',
+    ]);
+    expect(session.app.context.requireDocument().hasId('inner')).toBe(false);
+  });
+
+  it('a <title> inside <text> is not part of the visible text', () => {
+    const session = read('<text id="t">a<title>tooltip</title>b</text>');
+    expect(session.run('tree t')).toEqual(['text#t  (0,0) "ab"']);
+  });
+
+  it('tspan / textPath content is still flattened into the text, with a warning', () => {
+    const session = new CliSession();
+    session.storage.files.set(
+      't.svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><text id="t">Hello <tspan>big</tspan> world</text></svg>',
+    );
+    expect(session.run('read t.svg')).toEqual(['warning: flattened nested elements in <text id=t>', 'read t.svg (1 element)']);
+    expect(session.run('tree t')).toEqual(['text#t  (0,0) "Hello big world"']);
+  });
+});

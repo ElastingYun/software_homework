@@ -4,6 +4,14 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.7.0] — 系统测试
+
+### Added
+- `examples/`：从说明文档中**程序化提取**的命令脚本 `demo.txt`（第 6 节典型会话）、`flowchart.txt`（6.1 节版本 A）与 `other.svg`；`examples/expected/` 中为期望 transcript（同样提取自说明文档）与**手写**的期望 SVG（独立于程序生成的判定依据）。
+- 端到端测试 `test/e2e`：以子进程真实启动 CLI 回放脚本，与说明文档 transcript 逐行比对（第 6 节完全一致；6.1 节除手工对齐的空格外一致），保存出的 SVG 与手写期望逐字节一致，并验证"保存 → 新会话读回"的树完全相同。
+- 验收测试 `test/spec`：按说明文档章节组织（§2 通用约定、§2.1 Composite、§4.1 参数与 SVG 片段及 set 白名单、§4.2 错误表**逐行**、§4.3 undo 粒度、§5 显示、§3 group/ungroup/addto/front/back 语义），每个错误场景同时断言"状态不变"。
+- 测试辅助 `CliSession`、`CliProcess`。共 245 个测试；语句覆盖率 98.7%，分支覆盖率 94%。
+
 ## [v0.6.0] — cli 模块 + 组装根：首个可运行版本
 
 ### Added

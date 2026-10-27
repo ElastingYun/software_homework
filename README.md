@@ -5,7 +5,7 @@ Lab1 Phase 1 —— 命令行 SVG 编辑器（TypeScript，面向对象，Comman
 ```bash
 npm install
 npm run cli                      # 进入 svg> 交互式 REPL
-npm run cli < examples/demo.txt  # 把命令脚本回放成 transcript
+cd examples && npx tsx ../src/main.ts < demo.txt   # 回放说明文档第 6 节会话（需要 other.svg）
 npm run check                    # 类型检查 + 依赖规则 + 全部测试
 ```
 

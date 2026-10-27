@@ -39,7 +39,7 @@ import { TextShape } from '../model/TextShape.js';
  * 注册内置图形类型与命令、注入文件存储、启动 REPL。
  */
 export class SvgEditorApp {
-  static readonly VERSION = '0.6';
+  static readonly VERSION = '0.7';
   static readonly BANNER = `svg-editor ${SvgEditorApp.VERSION} — type 'help' for commands`;
 
   readonly shapeFactory: ShapeFactory;

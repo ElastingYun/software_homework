@@ -151,8 +151,13 @@ export abstract class Shape {
     return fill === undefined ? text : `${text} fill=${fill}`;
   }
 
-  /** 已设置的表现属性，如 ["fill=red"]。 */
-  protected styleDescriptions(): string[] {
+  /** 自身属性（几何量、文本）的"名=值"列表，如 ["cx=100", "cy=100", "r=20"]。 */
+  describeOwnAttributes(): string[] {
+    return this.ownAttributeNames().map((name) => this.describeAttribute(name));
+  }
+
+  /** 已设置的表现属性的"名=值"列表，如 ["fill=red"]。 */
+  describeStyle(): string[] {
     return this.style.entries().map(([name, value]) => `${name}=${value}`);
   }
 

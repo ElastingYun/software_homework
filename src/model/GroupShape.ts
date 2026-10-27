@@ -91,6 +91,6 @@ export class GroupShape extends Shape implements Container {
   }
 
   summary(): string {
-    return this.styleDescriptions().join(' ');
+    return this.describeStyle().join(' ');
   }
 }

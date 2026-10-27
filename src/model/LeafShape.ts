@@ -63,6 +63,6 @@ export abstract class LeafShape extends Shape {
   }
 
   protected override ownSvgAttributes(): Array<[string, string]> {
-    return this.geometry.entries().map(([name, value]) => [name, NumericText.format(value)]);
+    return this.geometry.entries().map(([name, value]) => [name, NumericText.serialize(value)]);
   }
 }

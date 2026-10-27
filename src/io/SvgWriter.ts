@@ -11,8 +11,8 @@ export class SvgWriter {
   private static readonly INDENT = '  ';
 
   write(document: SvgDocument): string {
-    const width = NumericText.format(document.width);
-    const height = NumericText.format(document.height);
+    const width = NumericText.serialize(document.width);
+    const height = NumericText.serialize(document.height);
     const rootAttributes: Array<[string, string]> = [
       ['xmlns', SvgWriter.SVG_NAMESPACE],
       ['width', width],

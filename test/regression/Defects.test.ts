@@ -120,3 +120,36 @@ describe('BUG-3 (fixed in v0.8.2): namespace declarations on inner elements were
     ]);
   });
 });
+
+describe('BUG-4 (fixed in v0.8.3): save rounded every number to 6 decimals', () => {
+  it('read → save keeps small and precise values', () => {
+    const session = new CliSession();
+    session.storage.files.set(
+      'p.svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">' +
+        '<rect id="r" x="0.12345678" y="0.0000004" width="0.0000003" height="0.5"/></svg>',
+    );
+    session.run('read p.svg', 'save');
+    expect(session.file('p.svg')).toContain('<rect id="r" x="0.12345678" y="4e-7" width="3e-7" height="0.5"/>');
+  });
+
+  it('values typed on the command line survive save and read', () => {
+    const session = new CliSession();
+    session.run('init', 'create rect p 0 0 2.5e-7 1', 'canvas 1e-7 1', 'save p.svg');
+    expect(session.file('p.svg')).toContain('width="1e-7" height="1" viewBox="0 0 1e-7 1"');
+    expect(session.file('p.svg')).toContain('<rect id="p" x="0" y="0" width="2.5e-7" height="1"/>');
+    expect(session.run('read p.svg')).toEqual(['read p.svg (1 element)']);
+  });
+
+  it('floating-point noise is still removed from files', () => {
+    const session = new CliSession();
+    session.run('init', 'create rect r 0.1 0 1 1', 'move r 0.2 0', 'save n.svg');
+    expect(session.file('n.svg')).toContain('<rect id="r" x="0.3" ');
+  });
+
+  it('display shows tiny non-zero values instead of a misleading 0', () => {
+    const session = new CliSession();
+    session.run('init', 'create rect p 0 0 2.5e-7 1');
+    expect(session.run('tree p')).toEqual(['rect#p  x=0 y=0 w=2.5e-7 h=1']);
+  });
+});

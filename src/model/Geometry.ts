@@ -1,3 +1,4 @@
+import { EditorError } from './EditorError.js';
 import { GeometryMemento } from './GeometryMemento.js';
 import type { GeometryAxis } from './GeometryAxis.js';
 
@@ -44,15 +45,11 @@ export class Geometry {
   }
 
   translate(dx: number, dy: number): void {
-    for (const [name, axis] of this.axes) {
-      this.values.set(name, axis.translate(this.get(name), dx, dy));
-    }
+    this.assignAll((value, axis) => axis.translate(value, dx, dy));
   }
 
   scale(factor: number): void {
-    for (const name of this.axes.keys()) {
-      this.values.set(name, this.get(name) * factor);
-    }
+    this.assignAll((value) => value * factor);
   }
 
   createMemento(): GeometryMemento {
@@ -62,6 +59,21 @@ export class Geometry {
   /** 仅供 GeometryMemento 调用。 */
   restore(snapshot: ReadonlyMap<string, number>): void {
     for (const [name, value] of snapshot) {
+      this.values.set(name, value);
+    }
+  }
+
+  /** 先算出全部新值并检查有限性，再一次性写入：结果溢出时抛出 `<name> out of range` 且不修改任何字段。 */
+  private assignAll(next: (value: number, axis: GeometryAxis) => number): void {
+    const updated = new Map<string, number>();
+    for (const [name, axis] of this.axes) {
+      const value = next(this.get(name), axis);
+      if (!Number.isFinite(value)) {
+        throw new EditorError(`${name} out of range`);
+      }
+      updated.set(name, value);
+    }
+    for (const [name, value] of updated) {
       this.values.set(name, value);
     }
   }

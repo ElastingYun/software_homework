@@ -71,15 +71,11 @@ export class GroupShape extends Shape implements Container {
   }
 
   moveBy(dx: number, dy: number): void {
-    for (const child of this.childShapes()) {
-      child.moveBy(dx, dy);
-    }
+    this.applyToAll((child) => child.moveBy(dx, dy));
   }
 
   scaleBy(factor: number): void {
-    for (const child of this.childShapes()) {
-      child.scaleBy(factor);
-    }
+    this.applyToAll((child) => child.scaleBy(factor));
   }
 
   createMemento(): ShapeMemento {
@@ -92,5 +88,18 @@ export class GroupShape extends Shape implements Container {
 
   summary(): string {
     return this.describeStyle().join(' ');
+  }
+
+  /** 对每个子图形执行操作；任一子图形失败时用备忘录恢复整棵子树，保证容器操作"全有或全无"。 */
+  private applyToAll(operation: (child: Shape) => void): void {
+    const memento = this.createMemento();
+    try {
+      for (const child of this.childShapes()) {
+        operation(child);
+      }
+    } catch (error) {
+      memento.restore();
+      throw error;
+    }
   }
 }

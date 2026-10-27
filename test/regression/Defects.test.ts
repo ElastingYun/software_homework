@@ -349,3 +349,20 @@ describe('BUG-12 (fixed in v0.8.11): cosmetic — parser internals in error text
     ]);
   });
 });
+
+describe('BUG-13 (fixed in v0.8.12): files with characters XML forbids were read and written back', () => {
+  it('such a file is not well-formed XML and is refused with the line number', () => {
+    const session = new CliSession();
+    session.storage.files.set(
+      'ctl.svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1">\n<rect id="r" fill="re\u0001d"/>\n</svg>',
+    );
+    session.expectError('read ctl.svg', 'cannot read file: ctl.svg (invalid XML: invalid character U+0001 at line 2)');
+  });
+
+  it('tabs, newlines and carriage returns are allowed', () => {
+    const session = new CliSession();
+    session.storage.files.set('ok.svg', '<svg xmlns="http://www.w3.org/2000/svg"\r\n\twidth="1" height="1"/>');
+    expect(session.run('read ok.svg')).toEqual(['read ok.svg (0 elements)']);
+  });
+});

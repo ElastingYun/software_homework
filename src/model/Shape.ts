@@ -1,5 +1,6 @@
 import { EditorError } from './EditorError.js';
 import { PresentationStyle } from './PresentationStyle.js';
+import { XmlCharacters } from './XmlCharacters.js';
 import type { Container } from './Container.js';
 import type { GroupShape } from './GroupShape.js';
 import type { ShapeMemento } from './ShapeMemento.js';
@@ -23,7 +24,7 @@ export abstract class Shape {
     if (id.length === 0) {
       throw new EditorError('id must not be empty');
     }
-    this.shapeId = id;
+    this.shapeId = XmlCharacters.require(id, 'id');
   }
 
   get id(): string {
@@ -102,7 +103,7 @@ export abstract class Shape {
   /** 校验后写入；校验失败抛出 EditorError 且不改变状态。 */
   setAttribute(name: string, value: string): void {
     if (PresentationStyle.accepts(name)) {
-      this.style.set(name, value);
+      this.style.set(name, XmlCharacters.require(value, name));
       return;
     }
     this.writeOwnAttribute(name, value);

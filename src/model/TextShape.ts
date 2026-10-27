@@ -1,6 +1,7 @@
 import { HorizontalAxis } from './HorizontalAxis.js';
 import { LeafShape } from './LeafShape.js';
 import { VerticalAxis } from './VerticalAxis.js';
+import { XmlCharacters } from './XmlCharacters.js';
 import type { ElementSource } from './ElementSource.js';
 import type { ShapeParams } from './ShapeParams.js';
 
@@ -15,7 +16,7 @@ export class TextShape extends LeafShape {
   constructor(id: string, x: number, y: number, content: string) {
     super(id);
     this.geometry.define('x', HorizontalAxis.INSTANCE, x).define('y', VerticalAxis.INSTANCE, y);
-    this.content = content;
+    this.content = XmlCharacters.require(content, TextShape.CONTENT);
   }
 
   static fromParams(id: string, params: ShapeParams): TextShape {
@@ -54,7 +55,7 @@ export class TextShape extends LeafShape {
 
   protected override writeOwnAttribute(name: string, value: string): void {
     if (name === TextShape.CONTENT) {
-      this.content = value;
+      this.content = XmlCharacters.require(value, TextShape.CONTENT);
       return;
     }
     super.writeOwnAttribute(name, value);

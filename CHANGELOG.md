@@ -4,6 +4,14 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.8.2] — 修正：内层元素的命名空间声明在移动图形后丢失
+
+### Fixed
+- **BUG-3**（独立黑盒测试发现）读入 `<g id="sub" xmlns:inkscape="…"><rect inkscape:label="box"/></g>` 后执行 `ungroup sub`（或 `addto` 把 rect 移出），保存的文件中 `inkscape:label` 的前缀不在任何声明的作用域内，不是合法 XML，编辑器自己也读不回来（`NamespaceError`）。
+  - 原因：命名空间声明被当成普通透传属性挂在原元素上；`ungroup` 丢弃容器属性（并把 `xmlns:inkscape` 当成"不保留的属性"警告），`addto` 则把图形移出了声明的作用域。
+  - 修正：读入时把所有被导入元素上的 `xmlns:p` 声明提升到根 `<svg>`（同一前缀绑定不同 URI 时保留第一个并警告），`xmlns`/`xmlns:p` 不再作为图形的透传属性。
+  - 回归测试：BUG-3（ungroup / addto 后保存再读回、提升后 ungroup 无多余警告、前缀冲突）。
+
 ## [v0.8.1] — 修正：极深嵌套导致命令执行到一半时栈溢出、状态损坏
 
 ### Fixed

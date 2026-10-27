@@ -210,3 +210,31 @@ describe('BUG-6 (fixed in v0.8.5): child elements of leaf shapes were dropped si
     expect(session.run('tree t')).toEqual(['text#t  (0,0) "Hello big world"']);
   });
 });
+
+describe('BUG-7 (fixed in v0.8.6): text whitespace changed on a save/read round trip', () => {
+  it('significant spaces typed on the command line survive save and read', () => {
+    const session = new CliSession();
+    session.run('init', 'create text t 0 0 "a   b  "', 'save ws.svg');
+    expect(session.file('ws.svg')).toContain('<text id="t" x="0" y="0" xml:space="preserve">a   b  </text>');
+    session.run('read ws.svg');
+    expect(session.run('tree t')).toEqual(['text#t  (0,0) "a   b  "']);
+  });
+
+  it('external xml:space="preserve" text is kept verbatim (also when inherited)', () => {
+    const session = new CliSession();
+    const xml =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><text id="t" xml:space="preserve">  a   b  </text>' +
+      '<g xml:space="preserve" id="g"><text id="u"> x  y </text></g></svg>';
+    session.storage.files.set('p.svg', xml);
+    session.run('read p.svg', 'save');
+    expect(session.run('tree t')).toEqual(['text#t  (0,0) "  a   b  "']);
+    expect(session.run('tree u')).toEqual(['text#u  (0,0) " x  y "']);
+    expect(session.file('p.svg')).toContain('<text id="t" x="0" y="0" xml:space="preserve">  a   b  </text>');
+  });
+
+  it('ordinary text gets no xml:space attribute', () => {
+    const session = new CliSession();
+    session.run('init', 'create text t 0 0 "hello world"', 'save n.svg');
+    expect(session.file('n.svg')).not.toContain('xml:space');
+  });
+});

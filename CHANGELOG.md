@@ -4,6 +4,14 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.8.8] — 修正：根 `<svg>` 的 id 可与图形 id 重复
+
+### Fixed
+- **BUG-9**（独立黑盒测试发现）读入 `<svg id="root">` 后 `create rect root …` 成功，保存的文件出现两个 `id="root"`，违反说明文档第 2 节"id 强制唯一"。
+  - 原因：根元素的 id 作为透传属性保存，不在 id 索引中。
+  - 修正：`SvgDocument.hasId`（`attach` / `create` / `group` 共用）把根 id 视为已占用；读入时先占用根 id，与之冲突的元素按重复 id 规则改名并警告。
+  - 回归测试：BUG-9（2 个用例）。
+
 ## [v0.8.7] — 修正：接受 XML 无法表示的字符
 
 ### Fixed

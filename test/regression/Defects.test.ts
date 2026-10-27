@@ -82,3 +82,41 @@ describe('BUG-2 (fixed in v0.8.1): very deep nesting overflowed the stack in the
     expect(session.run('read abyss.svg')[0]).toMatch(/^error: cannot read file: abyss\.svg \(/);
   });
 });
+
+describe('BUG-3 (fixed in v0.8.2): namespace declarations on inner elements were lost when shapes moved', () => {
+  const nested =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><g id="layer">' +
+    '<g id="sub" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"><rect id="r" inkscape:label="box"/></g>' +
+    '</g></svg>';
+
+  it.each([
+    ['ungroup', ['ungroup sub'], 2],
+    ['addto', ['create g top', 'addto top r'], 4],
+  ])('after %s the saved file is still readable', (_name, edits, count) => {
+    const session = new CliSession();
+    session.storage.files.set('ns.svg', nested);
+    session.run('read ns.svg', ...edits, 'save out.svg');
+    expect(session.file('out.svg')).toContain('xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"');
+    expect(session.run('read out.svg')).toEqual([`read out.svg (${count} elements)`]);
+    expect(session.run('show r')).toContain('  preserved: inkscape:label="box"');
+  });
+
+  it('declarations are hoisted to the root, so ungroup has no attribute to drop', () => {
+    const session = new CliSession();
+    session.storage.files.set('ns.svg', nested);
+    session.run('read ns.svg');
+    expect(session.run('ungroup sub')).toEqual(['g#sub ungrouped, 1 child moved to g#layer']);
+  });
+
+  it('a prefix bound to two different URIs keeps the first and warns', () => {
+    const session = new CliSession();
+    session.storage.files.set(
+      'two.svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:p="urn:a" width="1" height="1"><g id="g" xmlns:p="urn:b"/></svg>',
+    );
+    expect(session.run('read two.svg')).toEqual([
+      'warning: namespace prefix p on <g id=g> rebinds "urn:a" to "urn:b"; keeping "urn:a"',
+      'read two.svg (1 element)',
+    ]);
+  });
+});

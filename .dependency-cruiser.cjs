@@ -62,10 +62,18 @@ module.exports = {
       to: { path: '^(node:)?(readline|tty)$' },
     },
     {
-      name: 'R8-no-circular',
+      name: 'R8a-no-runtime-circular',
+      comment: '禁止运行时循环依赖（环上每条边都是值导入）',
       severity: 'error',
       from: {},
-      to: { circular: true },
+      to: { circular: true, viaOnly: { dependencyTypesNot: ['type-only'] } },
+    },
+    {
+      name: 'R8b-no-cross-module-circular',
+      comment: '任何循环（含仅类型的）都不得跨越模块边界',
+      severity: 'error',
+      from: { path: '^src/([^/]+)/' },
+      to: { circular: true, via: { pathNot: '^src/$1/' } },
     },
     {
       name: 'not-to-unresolvable',

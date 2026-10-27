@@ -103,7 +103,7 @@ app ──► cli ──► command ──► view ──► model
 | R5 | `cli` 只依赖 `command`、`model`；不得依赖 `io`、`view` | CLI 只负责"文本 → 命令对象 → 输出行"，不越级操作存储与渲染 |
 | R6 | 只有 `app` 可以依赖全部模块（组装根）；任何模块不得依赖 `app` | 具体实现的选择集中在一处 |
 | R7 | 只有 `io` 可以使用 `node:fs` 与 XML 库；只有 `cli`、`app` 可以使用 `node:readline` / `process` | IO 隔离 |
-| R8 | 全局禁止循环依赖 | 循环依赖使模块无法独立理解与测试 |
+| R8 | 禁止运行时循环依赖；仅类型层面的循环只允许出现在同一模块内部（R8a/R8b） | 循环依赖使模块无法独立理解与测试。Composite 中"组件知道父容器、容器持有组件"是模式固有的双向引用（`Shape` ↔ `Container`），以 `import type` 表达，不产生运行时环（v0.2.0 修订，见过程记录） |
 
 以上规则写成 `.dependency-cruiser.cjs`，`npm run lint:deps` 自动检查；违反即为待处理项。
 
@@ -125,7 +125,19 @@ app ──► cli ──► command ──► view ──► model
 
 ## 二、过程记录
 
-（开发过程中逐步填写，见各版本。）
+按时间顺序记录有代表性的讨论、发现的问题与纠正。每条对应 CHANGELOG 中的一个版本。
+
+### P1（v0.1.0）指导文档先行：先把说明文档的"空白处"变成决定
+通读说明文档后发现约 17 处未写死的细节（IO 后 undo 栈如何处理、`group` 新容器放在哪里、读入未知元素怎么办……）。没有让 AI 直接写代码，而是先在 `GUIDE.md` 第 4 节逐条给出决定与理由（D1–D17），之后所有实现与测试都以这张表为准。例如 D4"新容器放在文档序第一个成员的位置"是从说明文档 transcript（`group markers c1 box` 后 markers 恰在原 c1 处）反推出来的，而不是凭感觉。
+
+### P2（v0.2.0）依赖规则 R8 初稿过严，被工具推翻后修订
+初稿 R8 写的是"全局禁止循环依赖"。model 实现后运行 `npm run lint:deps`，dependency-cruiser 报告 7 处循环，如 `Container.ts → Shape.ts → Container.ts`。逐条分析后确认：它们全部是 `import type` 的"组件知道父容器、容器持有组件"双向引用，是 Composite 模式固有的，且不存在运行时环（若存在，`class GroupShape extends Shape` 会在加载时得到 `undefined` 父类而崩溃）。因此修订规则而不是扭曲设计：R8a 禁止**运行时**循环，R8b 禁止任何**跨模块**循环。教训：规则写成可执行检查后，"看起来合理"的规则会被真实代码检验。
+
+### P3（v0.2.0）撤销 move/scale 不用反向运算
+最初的想法是 `undo move` 执行 `moveBy(-dx,-dy)`、`undo scale` 乘以 `1/factor`。写测试时用 `0.1 + 0.2 - 0.2` 验证发现结果是 `0.10000000000000003`，undo 后与原值不相等；`scale 3` 再乘 `1/3` 同样有误差。改为 Memento：执行前对几何量做快照，undo 精确恢复（`Geometry.test.ts` 中有对应用例）。同理 `set` 的撤销保存完整精度的原始字符串（`String(number)` 可无损往返），显示时才格式化。
+
+### P4（v0.2.0）开发环境：网络文件系统过慢
+工程目录位于网络文件系统上，`git commit` 约 2 分钟、`depcruise` 约 5 分钟、`vitest` 75 秒。改为在本地磁盘的克隆中开发，每个版本打 tag 后用 `git pull` 同步回交付目录；两边提交历史完全一致。
 
 ## 三、一致性自查
 

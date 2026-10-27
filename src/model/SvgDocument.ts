@@ -48,8 +48,9 @@ export class SvgDocument {
 
   // ---------- 查询 ----------
 
+  /** id 是否已被占用：任一图形，或根 `<svg>` 自身的 id（读入的文件可能带有）。 */
   hasId(id: string): boolean {
-    return this.index.has(id);
+    return this.index.has(id) || this.root.preservedAttribute('id') === id;
   }
 
   findShape(id: string): Shape | undefined {
@@ -136,7 +137,7 @@ export class SvgDocument {
     const subtree = shape.selfAndDescendants();
     const seen = new Set<string>();
     for (const member of subtree) {
-      if (this.index.has(member.id) || seen.has(member.id)) {
+      if (this.hasId(member.id) || seen.has(member.id)) {
         throw new EditorError(`id already exists: ${member.id}`);
       }
       seen.add(member.id);

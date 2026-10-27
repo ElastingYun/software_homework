@@ -35,6 +35,10 @@ export class SvgReader {
     const document = new SvgDocument(width, height);
     this.preserveRootAttributes(root, document);
     const allocator = new IdAllocator(this.explicitIds(root));
+    const rootId = root.getAttribute('id');
+    if (rootId !== null && rootId !== '') {
+      allocator.claim(rootId);
+    }
     this.readChildren(root, document.root, document, allocator, warnings);
     return new LoadedDocument(document, warnings);
   }

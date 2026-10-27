@@ -4,6 +4,14 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.8.6] — 修正：文本中的空白在保存/读回后改变
+
+### Fixed
+- **BUG-7**（独立黑盒测试发现）`create text t 0 0 "a   b  "` 保存后再读回变成 `"a b"`；外部文件中 `xml:space="preserve"` 的文本被折叠空白后写回，渲染结果改变。
+  - 原因：读入时总是按默认规则折叠空白，写出时又从不声明 `xml:space`，两端规则不对称。
+  - 修正：新增 `SvgWhitespace`（默认空白规则的唯一实现）；读入时遵循自身或祖先的 `xml:space="preserve"`；写出时若文本依赖空白则声明 `xml:space="preserve"`。
+  - 回归测试：BUG-7（3 个用例，含继承自祖先的 preserve）。
+
 ## [v0.8.5] — 修正：叶子图形的子元素被静默丢弃
 
 ### Fixed

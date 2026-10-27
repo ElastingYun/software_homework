@@ -258,3 +258,28 @@ describe('BUG-8 (fixed in v0.8.7): characters that XML cannot represent were acc
     expect(session.run('create text t 0 0 "tab\there 中文 😀"')).toEqual(['text#t created']);
   });
 });
+
+describe('BUG-9 (fixed in v0.8.8): the root <svg id> could be duplicated by a shape id', () => {
+  function withRootId(body = ''): CliSession {
+    const session = new CliSession();
+    session.storage.files.set('r.svg', `<svg xmlns="http://www.w3.org/2000/svg" id="root" width="1" height="1">${body}</svg>`);
+    return session;
+  }
+
+  it('create / group cannot reuse the root id', () => {
+    const session = withRootId('<rect id="a"/>');
+    session.run('read r.svg');
+    session.expectError('create rect root 0 0 1 1', 'id already exists: root');
+    session.expectError('group root a', 'id already exists: root');
+  });
+
+  it('an element that clashes with the root id is renamed on read', () => {
+    const session = withRootId('<rect id="root"/>');
+    expect(session.run('read r.svg')).toEqual([
+      'warning: duplicate id root on <rect>, assigned rect1',
+      'read r.svg (1 element)',
+    ]);
+    session.run('save');
+    expect(session.file('r.svg').match(/id="root"/g)).toHaveLength(1);
+  });
+});

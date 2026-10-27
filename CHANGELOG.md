@@ -4,6 +4,14 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.8.10] — 修正：`in` 不能用作 id
+
+### Fixed
+- **BUG-11**（独立黑盒测试发现，低）`create g in` 报 usage 错误；已存在容器 `in` 时 `create rect r 0 0 1 1 in in` 也报 usage 错误（`create rect in 0 0 1 1` 却可以）。
+  - 原因：`ArgumentList.splitInClause` 只要末尾是 `in` 就报错，没有考虑 `in` 出现的位置。
+  - 修正：`in` 只有作为至少 4 个参数中的倒数第二个时才是关键字；末尾悬空的 `in` 仍报 usage。
+  - 回归测试：BUG-11。
+
 ## [v0.8.9] — 修正：`set` 接受无意义的表现属性值
 
 ### Fixed

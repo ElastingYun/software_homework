@@ -1,4 +1,8 @@
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { SvgEditorApp } from '../../src/app/SvgEditorApp.js';
 import { CliSession } from '../support/CliSession.js';
 
 /**
@@ -151,5 +155,19 @@ describe('BUG-4 (fixed in v0.8.3): save rounded every number to 6 decimals', () 
     const session = new CliSession();
     session.run('init', 'create rect p 0 0 2.5e-7 1');
     expect(session.run('tree p')).toEqual(['rect#p  x=0 y=0 w=2.5e-7 h=1']);
+  });
+});
+
+describe('BUG-5 (fixed in v0.8.4): files starting with a UTF-8 byte order mark could not be read', () => {
+  it('reads a file with a BOM', () => {
+    const session = new CliSession();
+    session.storage.files.set('bom.svg', '﻿<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><circle id="c" r="1"/></svg>');
+    expect(session.run('read bom.svg')).toEqual(['read bom.svg (1 element)']);
+  });
+
+  it('reads a BOM file from disk through the real storage', () => {
+    const path = join(mkdtempSync(join(tmpdir(), 'bom-')), 'bom.svg');
+    writeFileSync(path, Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>')]));
+    expect(new SvgEditorApp().interpreter.interpret(`read "${path}"`)).toEqual([`read ${path} (0 elements)`]);
   });
 });

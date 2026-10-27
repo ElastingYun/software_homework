@@ -4,6 +4,12 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.8.0] — 架构 / 范式守卫测试
+
+### Added
+- `test/architecture/Paradigm.test.ts`：把说明文档 2.1"实现范式"写成可执行检查——每个源文件恰好导出一个与文件同名的类/接口；无自由函数、无导出常量；无 `switch`；`instanceof` 只用于错误类型；"名字 → 行为提供者"的注册表只有 `CommandRegistry` 与 `ShapeFactory` 两处且均标注"待重构"；具体类的注册只出现在组装根。
+- GUIDE 新增决定 D21（scale 不缩放 stroke-width / font-size）、D22（溢出拒绝）。
+
 ## [v0.7.1] — 修正：几何量溢出为 Infinity
 
 ### Fixed

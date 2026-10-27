@@ -4,6 +4,14 @@
 **MAJOR** 大版本（可交付的完整系统）· **MINOR** 模块更新（新增模块或功能）· **PATCH** 修正（测试中发现的缺陷）。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [v0.4.0] — view 模块
+
+### Added
+- `TreeRenderer`：`tree` / `tree <id>` 的树形文本；摘要列统一对齐（最长"前缀+标签" + 2）。与说明文档 5.1 节及 `other.svg` transcript 逐字一致。
+- `ShapeInspector`：`show <id>` 的属性明细（父容器、自身属性、表现属性、只读透传属性、子图形）。与说明文档 5.2 节逐字一致。
+- `Shape.describeOwnAttributes()` / `describeStyle()`（原 protected `styleDescriptions` 改为公开的 `describeStyle`）。
+- 9 个 view 测试。
+
 ## [v0.3.0] — io 模块
 
 ### Added

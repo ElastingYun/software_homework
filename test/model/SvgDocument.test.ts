@@ -79,6 +79,19 @@ describe('SvgDocument', () => {
     DocumentInvariants.check(document);
   });
 
+  it('depth counts container levels below the root; height counts shape levels', () => {
+    const inner = new GroupShape('inner');
+    document.attach(inner, group);
+    expect(document.depthOf(document.root)).toBe(0);
+    expect(document.depthOf(group)).toBe(1);
+    expect(document.depthOf(inner)).toBe(2);
+    expect(document.heightOf(a)).toBe(1);
+    expect(document.heightOf(inner)).toBe(1);
+    expect(document.heightOf(group)).toBe(2);
+    expect(() => document.ensureRoom(inner, SvgDocument.MAX_DEPTH - 1)).toThrow('nesting too deep');
+    expect(() => document.ensureRoom(inner, SvgDocument.MAX_DEPTH - 2)).not.toThrow();
+  });
+
   it('documentOrder follows pre-order traversal', () => {
     expect(document.documentOrder(b)).toBeGreaterThan(document.documentOrder(a));
     expect(document.positionOf(a).container).toBe(group);

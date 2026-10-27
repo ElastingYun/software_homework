@@ -33,3 +33,52 @@ describe('BUG-1 (fixed in v0.7.1): move/scale could overflow geometry to Infinit
     expect(session.file('out.svg')).not.toMatch(/Infinity|NaN/);
   });
 });
+
+describe('BUG-2 (fixed in v0.8.1): very deep nesting overflowed the stack in the middle of a command', () => {
+  const MAX = 500;
+
+  function chain(depth: number): CliSession {
+    const session = new CliSession();
+    session.run('init', 'create g g1');
+    for (let i = 2; i <= depth; i++) {
+      session.run(`create g g${i} in g${i - 1}`);
+    }
+    return session;
+  }
+
+  it('nesting beyond the limit is rejected cleanly and changes nothing', () => {
+    const session = chain(MAX);
+    session.expectError(`create rect r 0 0 1 1 in g${MAX}`, `nesting too deep (at most ${MAX} levels)`);
+    session.expectError(`create g extra in g${MAX}`, `nesting too deep (at most ${MAX} levels)`);
+    session.run('create rect leaf 0 0 1 1');
+    session.expectError(`addto g${MAX} leaf`, `nesting too deep (at most ${MAX} levels)`);
+    session.expectError('group wrapper g1', `nesting too deep (at most ${MAX} levels)`);
+  });
+
+  it('every operation works at the maximum depth', () => {
+    const session = chain(MAX - 1);
+    expect(session.run(`create rect deep 1 2 3 4 in g${MAX - 1}`)).toEqual([`rect#deep created in g#g${MAX - 1}`]);
+    expect(session.run('move g1 1 1')).toEqual(['g#g1 moved by (1,1)']);
+    expect(session.run('scale g1 2')).toEqual(['g#g1 scaled by 2']);
+    expect(session.run('tree').at(-1)).toMatch(/rect#deep +x=4 y=6 w=6 h=8$/);
+    expect(session.run('show deep')[0]).toBe(`rect#deep  parent=g#g${MAX - 1}`);
+    expect(session.run('delete g1')).toEqual(['g#g1 deleted']);
+    expect(session.run('undo')).toEqual(['g#g1 restored']);
+    expect(session.run('save deep.svg')).toEqual([`saved to deep.svg (${MAX} elements)`]);
+    expect(session.run('read deep.svg')).toEqual([`read deep.svg (${MAX} elements)`]);
+  });
+
+  it('a file nested deeper than the limit is refused with the file name', () => {
+    const body = '<g>'.repeat(MAX + 1) + '</g>'.repeat(MAX + 1);
+    const session = new CliSession();
+    session.storage.files.set('deep.svg', `<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1">${body}</svg>`);
+    session.expectError('read deep.svg', `cannot read file: deep.svg (nesting too deep (at most ${MAX} levels))`);
+  });
+
+  it('even absurdly deep files fail cleanly instead of overflowing the stack', () => {
+    const depth = 50_000;
+    const session = new CliSession();
+    session.storage.files.set('abyss.svg', `<svg xmlns="http://www.w3.org/2000/svg">${'<g>'.repeat(depth)}${'</g>'.repeat(depth)}</svg>`);
+    expect(session.run('read abyss.svg')[0]).toMatch(/^error: cannot read file: abyss\.svg \(/);
+  });
+});

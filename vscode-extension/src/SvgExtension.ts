@@ -9,8 +9,11 @@ import { SvgOutlineParser } from './outline/SvgOutlineParser';
  * 注册返回的 Disposable 交给 context.subscriptions，扩展停用时由 VSCode 统一释放。
  */
 export class SvgExtension {
-  /** 大纲只对 .svg 文件生效（VSCode 把 .svg 识别为 XML，按语言注册会影响所有 XML 文件）。 */
-  static readonly SVG_DOCUMENTS: vscode.DocumentSelector = { pattern: '**/*.svg' };
+  /**
+   * 大纲只对 .svg 文件生效（VSCode 把 .svg 识别为 XML，按语言注册会影响所有 XML 文件）。
+   * 选择器的 glob 区分大小写，用字符类匹配 .svg / .SVG / .Svg，与文件标记规则 SvgFileRule 一致。
+   */
+  static readonly SVG_DOCUMENTS: vscode.DocumentSelector = { pattern: '**/*.[sS][vV][gG]' };
 
   activate(context: vscode.ExtensionContext): void {
     const output = vscode.window.createOutputChannel('SVG Badge & Outline');

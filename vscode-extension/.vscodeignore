@@ -10,3 +10,4 @@ vitest.config.mts
 GUIDE.md
 **/*.vsix
 .gitignore
+ANALYSIS.md

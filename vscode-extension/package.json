@@ -2,7 +2,7 @@
   "name": "svg-badge-outline",
   "displayName": "SVG Badge & Outline",
   "description": "Lab1 Phase 2 Part 1: marks .svg files with [] in the Explorer and shows the SVG element tree in the Outline view",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "lab1-svg-editor",
   "license": "UNLICENSED",
   "private": true,

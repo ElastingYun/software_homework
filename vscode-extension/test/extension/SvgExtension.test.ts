@@ -14,7 +14,7 @@ describe('activation', () => {
     const [decoration, symbols] = Registrations.calls;
     expect(Registrations.calls.map((call) => call.api)).toEqual(['registerFileDecorationProvider', 'registerDocumentSymbolProvider']);
     expect(decoration!.args[0]).toBeInstanceOf(SvgFileDecorationProvider);
-    expect(symbols!.args[0]).toEqual({ pattern: '**/*.svg' });
+    expect(symbols!.args[0]).toEqual({ pattern: '**/*.[sS][vV][gG]' });
     expect(symbols!.args[1]).toBeInstanceOf(SvgDocumentSymbolProvider);
     expect(context.subscriptions).toHaveLength(3);
   });

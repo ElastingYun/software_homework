@@ -43,11 +43,11 @@ export class OutlineScan {
   /** 当前位置是 `<`：按类型分派到注释、CDATA、处理指令、声明、结束标签或开始标签。 */
   private markup(): void {
     if (this.startsWith('<!--')) {
-      this.skipPast('-->', 'unterminated comment');
+      this.offset = this.endOf(this.offset, '<!--', '-->', 'unterminated comment');
     } else if (this.startsWith('<![CDATA[')) {
-      this.skipPast(']]>', 'unterminated CDATA section');
+      this.offset = this.endOf(this.offset, '<![CDATA[', ']]>', 'unterminated CDATA section');
     } else if (this.startsWith('<?')) {
-      this.skipPast('?>', 'unterminated processing instruction');
+      this.offset = this.endOf(this.offset, '<?', '?>', 'unterminated processing instruction');
     } else if (this.startsWith('<!')) {
       this.skipDeclaration();
     } else if (this.startsWith('</')) {
@@ -84,7 +84,7 @@ export class OutlineScan {
       }
       const [name, value] = this.attribute(tagName);
       if (name === 'id') {
-        const decoded = this.decode(value).trim();
+        const decoded = this.decode(this.normaliseWhitespace(value)).trim();
         id = decoded === '' ? null : decoded;
       }
     }
@@ -148,7 +148,7 @@ export class OutlineScan {
     }
   }
 
-  /** `<!DOCTYPE …>` 等声明：跳到配对的 `>`，其间的引号与 `[…]` 内部子集不计。 */
+  /** `<!DOCTYPE …>` 等声明：跳到配对的 `>`，其间的引号、`[…]` 内部子集以及子集中的注释与处理指令不计。 */
   private skipDeclaration(): void {
     const start = this.offset;
     let depth = 0;
@@ -157,6 +157,10 @@ export class OutlineScan {
       const char = this.text[i];
       if (quote !== null) {
         quote = char === quote ? null : quote;
+      } else if (this.text.startsWith('<!--', i)) {
+        i = this.endOf(i, '<!--', '-->', 'unterminated comment') - 1;
+      } else if (this.text.startsWith('<?', i)) {
+        i = this.endOf(i, '<?', '?>', 'unterminated processing instruction') - 1;
       } else if (char === '"' || char === "'") {
         quote = char;
       } else if (char === '[') {
@@ -171,12 +175,13 @@ export class OutlineScan {
     throw new IncompleteXmlError('unterminated declaration', start);
   }
 
-  private skipPast(terminator: string, problem: string): void {
-    const end = this.text.indexOf(terminator, this.offset + 2);
+  /** 从 start 处的 opener 之后查找 terminator，返回其后的位置（`<!-->` 中的 `-->` 不算结束）。 */
+  private endOf(start: number, opener: string, terminator: string, problem: string): number {
+    const end = this.text.indexOf(terminator, start + opener.length);
     if (end < 0) {
-      throw new IncompleteXmlError(problem, this.offset);
+      throw new IncompleteXmlError(problem, start);
     }
-    this.offset = end + terminator.length;
+    return end + terminator.length;
   }
 
   private readName(problem: string): string {
@@ -203,6 +208,11 @@ export class OutlineScan {
 
   private span(from: number, to: number): SourceSpan {
     return new SourceSpan(this.lines.positionAt(from), this.lines.positionAt(to));
+  }
+
+  /** XML 属性值规范化：换行统一后，字面的制表、换行、回车都变成空格（字符引用 `&#10;` 不受影响）。 */
+  private normaliseWhitespace(value: string): string {
+    return value.replace(/\r\n?/g, '\n').replace(/[\t\n]/g, ' ');
   }
 
   /** 属性值中的预定义实体与数字字符引用；无法识别的保持原样。 */

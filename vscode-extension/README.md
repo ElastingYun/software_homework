@@ -13,7 +13,9 @@
 
 ## 安装（推荐：直接安装 .vsix，不需要 Node.js）
 
-1. 在 VSCode 左侧打开"扩展"面板，点面板右上角的 **"…" → 从 VSIX 安装…（Install from VSIX…）**，选择 `svg-badge-outline-0.1.1.vsix`。
+> `.vsix` 是构建产物，不在 git 仓库中。从仓库获取源码时，先按下一节用 `npm run package` 生成；拿到现成的 `.vsix` 文件时可直接安装。
+
+1. 在 VSCode 左侧打开"扩展"面板，点面板右上角的 **"…" → 从 VSIX 安装…（Install from VSIX…）**，选择 `svg-badge-outline-0.1.2.vsix`。
 2. 安装完成后，扩展在 VSCode 启动后自动激活。如果没有生效，执行一次 **开发人员：重新加载窗口（Developer: Reload Window）**。
 
 卸载：在扩展面板搜索 `SVG Badge & Outline` → 卸载。
@@ -24,7 +26,7 @@
 cd vscode-extension
 npm ci             # 安装依赖
 npm run check      # 类型检查 + 单元测试
-npm run package    # 编译并打包成 svg-badge-outline-0.1.1.vsix
+npm run package    # 编译并打包成 svg-badge-outline-0.1.2.vsix
 ```
 
 调试：用 VSCode 打开 `vscode-extension` 文件夹，按 **F5**（运行配置 "Run Extension (open samples)"）。VSCode 会先编译，再打开一个"扩展开发宿主"窗口，自动载入 `samples/` 目录。
@@ -56,6 +58,17 @@ npm run package    # 编译并打包成 svg-badge-outline-0.1.1.vsix
 3. 把文件补完整：删掉最后一行 `<circle …`，在末尾加上 `</g></svg>`。大纲立即出现 `svg → g#half-typed → rect#r1`。
 
 > 从 v0.1.1 起，扩展把 `.svg` 的默认打开方式设为文本编辑器（否则点击大纲节点时 VSCode 会切换回图片预览，见 GUIDE.md 第 8 节 BUG-V1）。这只是默认值：如果想恢复双击 `.svg` 时显示图片，在用户设置中加入 `"workbench.editorAssociations": { "*.svg": "imagePreview.previewEditor" }`。
+
+## 真实运行证据（macOS 上的 VSCode，用户截图）
+
+| 需求 | 截图 | 说明 |
+|---|---|---|
+| 实现前：VSCode 不分析 SVG 结构 | [`before-image-preview.png`](docs/images/before-image-preview.png)、[`before-text-editor.png`](docs/images/before-text-editor.png)、[`before-outline-empty-annotated.png`](docs/images/before-outline-empty-annotated.png) | 默认以图片预览打开；文本方式下语言为 XML；大纲"找不到符号" |
+| A.1 文件标记 | [`after-badge-and-click-leaf.png`](docs/images/after-badge-and-click-leaf.png) 等 | `.svg` 文件右侧 `[]`；`.txt`、`.transcript`、目录无标记 |
+| A.2 层级、`标签名#id`、点击叶子定位 | [`after-badge-and-click-leaf.png`](docs/images/after-badge-and-click-leaf.png)、[`after-click-leaf-text.png`](docs/images/after-click-leaf-text.png) | 点 `circle#c1` → 第 6 行；点 `text#title` → 第 4 行 |
+| A.2 多层嵌套、点击容器定位 | [`after-nested-click-container.png`](docs/images/after-nested-click-container.png) | `svg → g#flowchart → g#node2`，点 `g#node2` → 第 8 行，面包屑同步 |
+| A.2 编辑更新、无 id 元素 | [`after-edit-update-no-id.png`](docs/images/after-edit-update-no-id.png) | 未保存的编辑中把 `id` 删空，大纲立即从 `text#title` 变为 `text` |
+| A.2 不完整 XML | [`after-incomplete-xml-empty.png`](docs/images/after-incomplete-xml-empty.png) | 删掉 `</g>` 后大纲清空，无报错弹窗，问题面板 0 错误 |
 
 ## 目录
 

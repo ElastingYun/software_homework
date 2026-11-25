@@ -62,7 +62,7 @@ VS -> VS : dispose(context.subscriptions)
 
 1. **注册是"把对象交给宿主"**：插件交出的是实现了 `vscode.FileDecorationProvider` / `vscode.DocumentSymbolProvider` 接口的对象，宿主保存它们并在需要时回调。注册时附带的选择器 `{ pattern: '**/*.svg' }` 让 VSCode 只在 `.svg` 文档上调用大纲提供者（GUIDE E3）。
 2. **调用由 VSCode 发起、按需进行**：装饰只对 Explorer 中**可见**的项请求；文档符号在文档内容变化后由 VSCode 重新请求，所以本插件每次都从当前文本重新解析、不缓存（GUIDE E7），"编辑后大纲更新"不需要插件监听任何事件。
-3. **点击跳转完全由 VSCode 完成**：插件只提供每个节点的 `range`（整个元素）与 `selectionRange`（开始标签中的标签名），跳转、选中、面包屑同步都是宿主行为。BUG-V1（点击后切换到图片预览）正是宿主的"按默认编辑器重新打开再定位"行为造成的，修正方式也是通过清单向宿主声明默认设置（`contributes.configurationDefaults`，GUIDE E11），而不是在插件里接管跳转。
+3. **点击跳转完全由 VSCode 完成**：插件只提供每个节点的 `range`（整个元素）与 `selectionRange`（开始标签中的标签名），跳转、选中、面包屑同步都是宿主行为。BUG-V1（点击后切换到图片预览）正是宿主的"按默认编辑器重新打开再定位"行为造成的，修正方式也是通过清单向宿主声明默认设置（`contributes.configurationDefaults`，GUIDE E11），而不是在插件里接管跳转。这一修正有一个用户可见的副作用：安装插件后，双击 `.svg` 默认以文本方式打开而不再显示图片预览；它只是默认值，用户设置可以改回去（见 README）。
 4. **释放**：注册函数返回 `Disposable`，放进 `context.subscriptions` 后由 VSCode 在停用时统一释放，插件无需自己记录要注销什么。
 
 ---
@@ -106,7 +106,7 @@ SvgDocumentSymbolProvider ..> DocumentSymbol : OutlineNode → DocumentSymbol
 ```
 
 - 两个提供者都**实现宿主定义的接口**，并通过构造参数**组合**纯逻辑对象（规则、解析器、文件系统的 `stat`），自己只做"接口适配 + 结果转换"。
-- 纯逻辑类不 import `vscode`，因此能在没有 VSCode 的环境中做单元测试（`test/` 中 65 个测试）；`vscode` 模块在测试中由 `test/support/vscode.ts` 替代。
+- 纯逻辑类不 import `vscode`，因此能在没有 VSCode 的环境中做单元测试（`test/` 中的单元测试与回归测试）；`vscode` 模块在测试中由 `test/support/vscode.ts` 替代。
 
 ### 2.2 文件装饰与经典 Decorator 模式
 

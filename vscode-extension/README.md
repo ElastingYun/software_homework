@@ -9,7 +9,7 @@
   - 编辑后大纲自动更新。
   - XML 不完整（比如编辑到一半）时大纲暂时清空，不会报错。
 
-方案与决定见 [`GUIDE.md`](GUIDE.md)。
+方案与决定见 [`GUIDE.md`](GUIDE.md)；A.3 要求的分析（VSCode 与插件的职责及注册调用过程、文件装饰与 Decorator/Adapter 模式、Phase 1 复用评估）见 [`ANALYSIS.md`](ANALYSIS.md)。
 
 ## 安装（推荐：直接安装 .vsix，不需要 Node.js）
 

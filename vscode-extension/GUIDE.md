@@ -28,7 +28,7 @@
 | 语言 | TypeScript 5.9，`strict` | 与 Phase 1 一致 |
 | 模块格式 | 编译为 CommonJS（`out/`） | VSCode 扩展最通用的形式，兼容旧版本 VSCode |
 | 最低 VSCode 版本 | `engines.vscode: ^1.85.0`（`@types/vscode` 1.85） | 两个所需 API（`FileDecorationProvider`、`DocumentSymbolProvider`）早已稳定；版本要求低，组员的 VSCode 都能装 |
-| XML 解析 | **自己写一个容错的、记录位置的扫描器**，不引入第三方库 | 大纲需要每个元素在源码中的起止位置，并要能识别"不完整"；Phase 1 用的 xmldom 不提供完整位置信息（见 A.3 复用评估） |
+| XML 解析 | **自己写一个容错的、记录位置的扫描器**，不引入第三方库 | 大纲需要每个元素在源码中的起止位置，并要能识别"不完整"；Phase 1 用的 xmldom 只记录开始标签的行列、不记录结束位置（实测验证，见 `ANALYSIS.md` 第 3 节） |
 | 测试 | vitest，测试纯逻辑（不依赖 VSCode） | 服务器上可运行；VSCode 集成部分很薄，用真实运行截图验证 |
 | 打包 | `@vscode/vsce` 打成 `.vsix` | 使用者无需安装 Node.js，在 VSCode 中"从 VSIX 安装"即可 |
 

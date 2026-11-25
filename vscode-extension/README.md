@@ -13,7 +13,7 @@
 
 ## 安装（推荐：直接安装 .vsix，不需要 Node.js）
 
-1. 在 VSCode 左侧打开"扩展"面板，点面板右上角的 **"…" → 从 VSIX 安装…（Install from VSIX…）**，选择 `svg-badge-outline-0.1.0.vsix`。
+1. 在 VSCode 左侧打开"扩展"面板，点面板右上角的 **"…" → 从 VSIX 安装…（Install from VSIX…）**，选择 `svg-badge-outline-0.1.1.vsix`。
 2. 安装完成后，扩展在 VSCode 启动后自动激活。如果没有生效，执行一次 **开发人员：重新加载窗口（Developer: Reload Window）**。
 
 卸载：在扩展面板搜索 `SVG Badge & Outline` → 卸载。
@@ -24,7 +24,7 @@
 cd vscode-extension
 npm ci             # 安装依赖
 npm run check      # 类型检查 + 单元测试
-npm run package    # 编译并打包成 svg-badge-outline-0.1.0.vsix
+npm run package    # 编译并打包成 svg-badge-outline-0.1.1.vsix
 ```
 
 调试：用 VSCode 打开 `vscode-extension` 文件夹，按 **F5**（运行配置 "Run Extension (open samples)"）。VSCode 会先编译，再打开一个"扩展开发宿主"窗口，自动载入 `samples/` 目录。
@@ -39,7 +39,7 @@ npm run package    # 编译并打包成 svg-badge-outline-0.1.0.vsix
 - `notes.txt`、`sub-folder` 目录、`folder-named.svg` 目录（名字以 .svg 结尾但它是目录）都**没有**标记。
 
 **截图 2：大纲与源码定位**
-1. 打开 `flowchart.svg`。VSCode 默认会用图片预览打开，需要改成文本编辑器：按 `Cmd+Shift+P`，执行"重新打开编辑器的方式…（Reopen Editor With…）"，选择"文本编辑器"。
+1. 打开 `flowchart.svg`，它会直接以文本方式打开（v0.1.1 起）。如果仍显示为图片，说明用户设置里另有关联：按 `Cmd+Shift+P`，执行"重新打开编辑器的方式…（Reopen Editor With…）"，选择"文本编辑器"。
 2. 展开左下角的"大纲"，应显示：
    ```
    svg
@@ -55,7 +55,7 @@ npm run package    # 编译并打包成 svg-badge-outline-0.1.0.vsix
 2. 打开 `incomplete.svg`（同样用文本编辑器打开）。它故意写到一半，大纲为空，没有任何报错弹窗。截图。
 3. 把文件补完整：删掉最后一行 `<circle …`，在末尾加上 `</g></svg>`。大纲立即出现 `svg → g#half-typed → rect#r1`。
 
-> 小技巧：想让 `.svg` 默认用文本方式打开，可以在设置（JSON）中加入 `"workbench.editorAssociations": { "*.svg": "default" }`。
+> 从 v0.1.1 起，扩展把 `.svg` 的默认打开方式设为文本编辑器（否则点击大纲节点时 VSCode 会切换回图片预览，见 GUIDE.md 第 8 节 BUG-V1）。这只是默认值：如果想恢复双击 `.svg` 时显示图片，在用户设置中加入 `"workbench.editorAssociations": { "*.svg": "imagePreview.previewEditor" }`。
 
 ## 目录
 

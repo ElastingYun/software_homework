@@ -68,6 +68,7 @@ vscode-extension/
 | E8 | XML 不完整 | 标签未闭合、结束标签不匹配、引号或注释未结束等：返回**空大纲**（空数组），不抛异常、不弹错误提示 |
 | E9 | 非 SVG 根元素 / 空文件 | 空文件 → 空大纲；根元素不是 `svg` 仍按 XML 显示层级（不做 SVG 规范校验，需求明确不要求） |
 | E10 | 节点类型图标 | 根与容器（有子元素的）用 `SymbolKind.Namespace`，叶子用 `SymbolKind.Field`，只影响图标 |
+| E11 | 点击大纲节点时被切换到图片预览（v0.1.1，见第 8 节 BUG-V1） | 扩展在 `package.json` 的 `contributes.configurationDefaults` 中把 `workbench.editorAssociations` 的默认值设为 `{"*.svg": "default"}`：`.svg` 默认用文本编辑器打开。这是**默认值**，用户设置优先；想恢复图片预览，可在用户设置中把 `*.svg` 关联到 `imagePreview.previewEditor` |
 
 ## 6. 测试策略
 
@@ -88,3 +89,10 @@ vscode-extension/
 3. 打开包含 `.svg` 的文件夹，Explorer 中可见 `[]`；用"重新打开编辑器的方式 → 文本编辑器"打开 SVG，展开"大纲"面板。
 
 从源码构建（需要 Node.js ≥ 22）：`cd vscode-extension && npm ci && npm test && npm run package`。
+
+## 8. 实际运行中发现的问题
+
+| 编号 | 发现者 / 方式 | 现象 | 原因 | 修正 |
+|---|---|---|---|---|
+| BUG-V1 | 用户在 macOS 的 VSCode 中安装 v0.1.0 后实际操作发现 | 用文本编辑器打开 `.svg` 后大纲正常显示，但点击大纲节点（如 `rect#bg`）会立即切换成图片预览，无法定位到源码 | 该环境中 `.svg` 的默认编辑器是图片预览（O1）。点击大纲节点时 VSCode 会按默认编辑器重新打开该文件再定位，于是离开了文本编辑器 | 先由用户手动添加设置 `"workbench.editorAssociations": {"*.svg": "default"}` 验证了原因（点击后光标正确定位）；v0.1.1 由扩展通过 `configurationDefaults` 提供该默认值（E11），无需用户手动配置 |
+

@@ -2,7 +2,7 @@
   "name": "svg-badge-outline",
   "displayName": "SVG Badge & Outline",
   "description": "Lab1 Phase 2 Part 1: marks .svg files with [] in the Explorer and shows the SVG element tree in the Outline view",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "lab1-svg-editor",
   "license": "UNLICENSED",
   "private": true,
@@ -16,13 +16,20 @@
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
+  "contributes": {
+    "configurationDefaults": {
+      "workbench.editorAssociations": {
+        "*.svg": "default"
+      }
+    }
+  },
   "scripts": {
     "compile": "tsc -p tsconfig.build.json",
     "watch": "tsc -p tsconfig.build.json --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check": "npm run typecheck && npm test",
-    "package": "npm run compile && vsce package --no-dependencies --skip-license --allow-missing-repository"
+    "package": "npm run compile && vsce package --no-dependencies --skip-license --allow-missing-repository --no-rewrite-relative-links"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

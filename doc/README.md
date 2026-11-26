@@ -1,4 +1,29 @@
-# SVG 编辑器（CLI）—— 设计与过程文档
+# SVG 编辑器设计与过程文档
+
+## Phase 2 第一部分：VSCode 插件实践
+
+### 安装与演示（A.1、A.2）
+
+用 VS Code 打开仓库中的 `vscode-extension` 文件夹，在集成终端运行 `npm ci`（已验证 Node.js 24.3.0），然后按 **F5**。扩展开发宿主会打开示例目录。也可按扩展说明打包并从 VSIX 安装。[安装步骤](../vscode-extension/README.md) · [开发前观察到的空大纲](../vscode-extension/docs/images/before-outline-empty-annotated.png)
+
+| 在扩展开发宿主中的操作 | 可核对的结果 | 证据 |
+|---|---|---|
+| 在 Explorer 展开示例目录 | `flowchart.svg` 右侧有 `[]`，`notes.txt` 和目录 `folder-named.svg` 没有该标记 | [示例目录](../vscode-extension/samples/) · [文件标记截图](../vscode-extension/docs/images/after-badge-and-click-leaf.png) |
+| 以文本方式打开 `flowchart.svg`，在大纲中展开 `svg → g#flowchart → g#node1`，选中 `rect#start` | 光标停在源码第 5 行。再选中 `g#flowchart` 下的另一分组 `g#node2` 可定位到第 8 行，其第二个子元素显示为 `text` | [示例源码](../vscode-extension/samples/flowchart.svg) · [容器定位截图](../vscode-extension/docs/images/after-nested-click-container.png) · [干净配置下的宿主验证记录](../vscode-extension/docs/evidence/vscode-host.json) |
+| 将第 5 行的 `id="start"` 改成 `id="begin"`，保持未保存 | 大纲显示 `rect#begin`。删掉该属性，节点显示为 `rect` | [编辑后无 id 的节点截图](../vscode-extension/docs/images/after-edit-update-no-id.png) |
+| 打开故意缺尾的 `incomplete.svg`，将最后一行替换为 `</g></svg>` | 编辑前大纲为空；补全后恢复为 `svg → g#half-typed → rect#r1` | [不完整的示例](../vscode-extension/samples/incomplete.svg) · [大纲清空截图](../vscode-extension/docs/images/after-incomplete-xml-empty.png) |
+
+### 接口、模式与 Phase 1 复用（A.3）
+
+- **宿主与插件。** `SvgExtension.activate` 注册文件装饰和文档符号两个提供者，将注册句柄交给 `context.subscriptions`。VS Code 按需请求装饰或符号，绘制 Explorer 和大纲。插件读取当前编辑缓冲区，提供节点名称、子节点和源码范围，宿主依据 `selectionRange` 定位标签名。[注册入口](../vscode-extension/src/SvgExtension.ts) · [文档符号提供者](../vscode-extension/src/outline/SvgDocumentSymbolProvider.ts)
+- **Decorator 与 Adapter。** 文件装饰与经典 Decorator 都能给已有对象附加信息或行为。经典 Decorator 与被包装对象共享接口并转发调用；这里 VS Code 以 URI 查询提供者，再将返回的 `FileDecoration` 叠加到文件项上。提供者自身充当对象适配器，组合后缀规则与 `stat`，把“是否为 SVG 文件”的判定转换成宿主需要的 `FileDecoration('[]')` 或 `undefined`。[文件装饰提供者](../vscode-extension/src/decoration/SvgFileDecorationProvider.ts)
+- **Phase 1 复用。** 在本仓库 `final`（`8edfba0`）中，`SvgReader` 为缺 id 的图形分配 id，跳过未注册的元素；`Shape` 模型未保留源码范围。`TreeRenderer.collect` 的子节点遍历思路可沿用，但它生成的是终端文本。扩展另建带位置和可选 id 的 `OutlineNode` 树，再将它转换为 VS Code 所需的符号树。[Phase 1 读取器](../src/io/SvgReader.ts) · [树渲染器](../src/view/TreeRenderer.ts) · [完整分析与解析器实验](../vscode-extension/ANALYSIS.md)
+
+原作者的截图和本次宿主复核分别收录在验收记录中，AI 建议的核查与修正见过程记录。[验收记录](../vscode-extension/DELIVERY.md) · [AI 协作过程](../vscode-extension/PROCESS.md)
+
+在仓库根目录运行 `node docs/metrics/vscode.mjs HEAD` 可按源码、测试用例和测试支持文件查看扩展的 TypeScript 物理行数（含注释与空行）。将 `HEAD` 换成 `final` 或其他提交即可查看该版本的清单。[统计脚本](../docs/metrics/vscode.mjs)
+
+## Phase 1 命令行 SVG 编辑器
 
 > 对应 Lab1 Phase 1 说明文档 `phase_cli_1.md` 第 1.2 节要求的四部分：**架构方案 / 过程记录 / 一致性自查 / 质量保证手段**。
 > 开发规范、未定细节的决定、版本里程碑见 [`GUIDE.md`](GUIDE.md)；版本变更明细见 [`../CHANGELOG.md`](../CHANGELOG.md)。

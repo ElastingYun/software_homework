@@ -1,0 +1,17 @@
+.vscode/**
+src/**
+test/**
+samples/**
+docs/**
+!docs/installed.md
+README.md
+node_modules/**
+out/**/*.map
+tsconfig*.json
+vitest.config.mts
+GUIDE.md
+**/*.vsix
+.gitignore
+ANALYSIS.md
+DELIVERY.md
+PROCESS.md

@@ -1,0 +1,153 @@
+{
+  "date": "2026-11-26",
+  "platform": "macOS",
+  "extension": "lab1-svg-editor.svg-badge-outline@0.1.2",
+  "observations": [
+    {
+      "key": "vscode",
+      "value": "1.147.0"
+    },
+    {
+      "key": "automatic activation",
+      "value": true
+    },
+    {
+      "key": "associations",
+      "value": {
+        "key": "workbench.editorAssociations",
+        "defaultValue": {
+          "*.svg": "default"
+        }
+      }
+    },
+    {
+      "key": "flowchart.svg default text",
+      "value": true
+    },
+    {
+      "key": "flowchart.svg",
+      "value": [
+        {
+          "label": "svg",
+          "line": 2,
+          "children": [
+            {
+              "label": "g#flowchart",
+              "line": 3,
+              "children": [
+                {
+                  "label": "g#node1",
+                  "line": 4,
+                  "children": [
+                    {
+                      "label": "rect#start",
+                      "line": 5,
+                      "children": []
+                    },
+                    {
+                      "label": "text#start-label",
+                      "line": 6,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "label": "g#node2",
+                  "line": 8,
+                  "children": [
+                    {
+                      "label": "rect#process",
+                      "line": 9,
+                      "children": []
+                    },
+                    {
+                      "label": "text",
+                      "line": 10,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "label": "line#arrow1",
+                  "line": 12,
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "unsaved edit, incomplete input and recovery",
+      "value": true
+    },
+    {
+      "key": "UPPER.SVG default text",
+      "value": true
+    },
+    {
+      "key": "UPPER.SVG",
+      "value": [
+        {
+          "label": "svg",
+          "line": 2,
+          "children": [
+            {
+              "label": "g#diagram",
+              "line": 4,
+              "children": [
+                {
+                  "label": "rect#a",
+                  "line": 5,
+                  "children": []
+                },
+                {
+                  "label": "line#e",
+                  "line": 6,
+                  "children": []
+                },
+                {
+                  "label": "g#nodeB",
+                  "line": 8,
+                  "children": [
+                    {
+                      "label": "rect",
+                      "line": 9,
+                      "children": []
+                    },
+                    {
+                      "label": "text",
+                      "line": 10,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "outlineNavigation": [
+    {
+      "n": 0,
+      "file": "flowchart.svg",
+      "line": 2,
+      "selection": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"800\" height=\"600\" viewBox=\"0 0 800 600\">"
+    },
+    {
+      "n": 1,
+      "file": "flowchart.svg",
+      "line": 4,
+      "selection": "<g id=\"node1\">"
+    },
+    {
+      "n": 2,
+      "file": "flowchart.svg",
+      "line": 5,
+      "selection": "<rect id=\"start\" x=\"120\" y=\"100\" width=\"160\" height=\"60\" fill=\"#4a90d9\"/>"
+    }
+  ]
+}

@@ -3,6 +3,8 @@ src/**
 test/**
 samples/**
 docs/**
+!docs/installed.md
+README.md
 node_modules/**
 out/**/*.map
 tsconfig*.json
@@ -11,3 +13,5 @@ GUIDE.md
 **/*.vsix
 .gitignore
 ANALYSIS.md
+DELIVERY.md
+PROCESS.md

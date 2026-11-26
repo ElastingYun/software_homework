@@ -9,7 +9,7 @@
   - 编辑后大纲自动更新。
   - XML 不完整（比如编辑到一半）时大纲暂时清空，不会报错。
 
-方案与决定见 [`GUIDE.md`](GUIDE.md)；A.3 要求的分析（VSCode 与插件的职责及注册调用过程、文件装饰与 Decorator/Adapter 模式、Phase 1 复用评估）见 [`ANALYSIS.md`](ANALYSIS.md)。
+第一部分的验收说明（需求逐项检查方法）见 [`DELIVERY.md`](DELIVERY.md)，过程记录见 [`PROCESS.md`](PROCESS.md)。方案与决定见 [`GUIDE.md`](GUIDE.md)；A.3 要求的分析（VSCode 与插件的职责及注册调用过程、文件装饰与 Decorator/Adapter 模式、Phase 1 复用评估）见 [`ANALYSIS.md`](ANALYSIS.md)。
 
 ## 安装（推荐：直接安装 .vsix，不需要 Node.js）
 
@@ -20,7 +20,9 @@
 
 卸载：在扩展面板搜索 `SVG Badge & Outline` → 卸载。
 
-## 从源码构建与调试（需要 Node.js ≥ 22）
+## 从源码构建与调试
+
+本次使用 Node.js 24.3.0。从仓库根目录执行以下命令。
 
 ```bash
 cd vscode-extension
@@ -59,7 +61,9 @@ npm run package    # 编译并打包成 svg-badge-outline-0.1.2.vsix
 
 > 从 v0.1.1 起，扩展把 `.svg` 的默认打开方式设为文本编辑器（否则点击大纲节点时 VSCode 会切换回图片预览，见 GUIDE.md 第 8 节 BUG-V1）。这只是默认值：如果想恢复双击 `.svg` 时显示图片，在用户设置中加入 `"workbench.editorAssociations": { "*.svg": "imagePreview.previewEditor" }`。
 
-## 真实运行证据（macOS 上的 VSCode，用户截图）
+## 运行截图与宿主复核
+
+下表是开发时在 macOS 上拍摄的 VS Code 截图。随后在独立的 VS Code 1.147.0 配置中，通过原生大纲选中 `rect#start`，光标定位到 `flowchart.svg` 第 5 行。打开大写扩展名文件、未保存的编辑和 XML 修复也已复核。[宿主运行记录](docs/evidence/vscode-host.json)
 
 | 需求 | 截图 | 说明 |
 |---|---|---|

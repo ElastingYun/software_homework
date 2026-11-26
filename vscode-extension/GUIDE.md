@@ -1,7 +1,6 @@
 # 第一部分（VSCode 插件实践）开发指导
 
-> 需求来源：`phase_cli_2-研-1.md` 第一部分（A.1–A.3）。本文先定方案，再写代码。
-> 扩展代码放在本仓库顶层 `vscode-extension/`，与 CLI（`src/`、`test/`）完全分开，不修改 CLI 的任何文件。
+> 本文记录第一部分 A.1–A.3 的开发决定、实现及复核结果。扩展源码和测试位于本仓库顶层的 `vscode-extension/`。
 
 ## 1. 交付物与验收
 
@@ -18,8 +17,8 @@
 | # | 观察 | 对设计的影响 |
 |---|---|---|
 | O1 | 双击 `.svg` 默认以 **Image Preview**（图片预览）打开，看到的是渲染图形，不是源码 | 大纲只对文本编辑器生效；文档中说明需用"重新打开编辑器的方式 → 文本编辑器"打开 |
-| O2 | 以文本方式打开后，状态栏语言模式为 **XML** | 大纲提供者按文件名模式 `**/*.svg` 注册，而不是按语言 `xml` 注册，避免影响其他 XML 文件 |
-| O3 | 大纲面板显示"在文档'demo.svg'中找不到符号" | VSCode 本身不分析 SVG 结构，这正是 A.2 要补上的能力 |
+| O2 | 以文本方式打开后，状态栏语言模式为 **XML** | 按文件名限定提供者。v0.1.2 的选择器 `**/*.[sS][vV][gG]` 同时覆盖大小写后缀 |
+| O3 | 大纲面板显示“在文档 ‘demo.svg’ 中找不到符号” | 该环境需要能够从 SVG 文本提供分层符号的扩展 |
 
 ## 3. 技术选型
 
@@ -27,9 +26,9 @@
 |---|---|---|
 | 语言 | TypeScript 5.9，`strict` | 与 Phase 1 一致 |
 | 模块格式 | 编译为 CommonJS（`out/`） | VSCode 扩展最通用的形式，兼容旧版本 VSCode |
-| 最低 VSCode 版本 | `engines.vscode: ^1.85.0`（`@types/vscode` 1.85） | 两个所需 API（`FileDecorationProvider`、`DocumentSymbolProvider`）早已稳定；版本要求低，组员的 VSCode 都能装 |
+| VSCode 版本 | 清单声明 `engines.vscode: ^1.85.0`，编译时使用 `@types/vscode` 1.85 | 交付复核在 macOS、VSCode 1.147.0 中完成 |
 | XML 解析 | **自己写一个容错的、记录位置的扫描器**，不引入第三方库 | 大纲需要每个元素在源码中的起止位置，并要能识别"不完整"；Phase 1 用的 xmldom 只记录开始标签的行列、不记录结束位置（实测验证，见 `ANALYSIS.md` 第 3 节） |
-| 测试 | vitest，测试纯逻辑（不依赖 VSCode） | 服务器上可运行；VSCode 集成部分很薄，用真实运行截图验证 |
+| 测试 | Vitest 测试纯逻辑及提供者，宿主 API 用测试替身提供 | 另用真实 VSCode 核验编辑、定位和异常恢复，并保留界面截图 |
 | 打包 | `@vscode/vsce` 打成 `.vsix` | 使用者无需安装 Node.js，在 VSCode 中"从 VSIX 安装"即可 |
 
 ## 4. 结构设计（面向对象，一类一文件）
@@ -38,12 +37,14 @@
 vscode-extension/
 ├── package.json            扩展清单：activationEvents、contributes
 ├── src/
-│   ├── extension.ts        入口：activate() 中向 VSCode 注册两个提供者
+│   ├── extension.ts        入口：将 activate(context) 委托给 SvgExtension
+│   ├── SvgExtension.ts     注册两个提供者，创建输出通道
 │   ├── decoration/
 │   │   ├── SvgFileRule.ts              判定"是不是 SVG 文件"（纯逻辑，可单测）
 │   │   └── SvgFileDecorationProvider.ts 实现 vscode.FileDecorationProvider
 │   └── outline/
-│       ├── SvgOutlineParser.ts         扫描 SVG 文本 → OutlineNode 树（纯逻辑，可单测）
+│       ├── SvgOutlineParser.ts         调用扫描器，编辑时为不完整的 XML 返回空数组
+│       ├── OutlineScan.ts / LineIndex.ts  扫描元素，按文本偏移计算行列
 │       ├── OutlineNode.ts              元素节点：标签名、id、源码起止位置、子节点
 │       ├── SourcePosition.ts / SourceSpan.ts  位置值对象（行、列，从 0 开始）
 │       ├── IncompleteXmlError.ts       不完整 / 不合法 XML
@@ -52,7 +53,7 @@ vscode-extension/
 └── samples/                 示例 SVG
 ```
 
-依赖方向：`extension.ts` → 两个 Provider → 纯逻辑类。**纯逻辑类不 import `vscode`**，因此可在没有 VSCode 的环境中测试；只有 Provider 与入口依赖 VSCode API。
+激活时，`extension.ts` 将上下文传给 `SvgExtension.activate()`。后者创建两个提供者，注入文件系统或解析器，并将注册返回的 `Disposable` 和输出通道放入 `context.subscriptions`。规则、扫描器和解析器可以脱离宿主运行。
 
 ## 5. 关键行为决定（E1–E11）
 
@@ -67,7 +68,7 @@ vscode-extension/
 | E7 | 编辑后更新 | VSCode 在文档变化后会重新请求符号；提供者每次都从当前文本重新解析，不缓存旧结果 |
 | E8 | XML 不完整 | 标签未闭合、结束标签不匹配、引号或注释未结束等：返回**空大纲**（空数组），不抛异常、不弹错误提示 |
 | E9 | 非 SVG 根元素 / 空文件 | 空文件 → 空大纲；根元素不是 `svg` 仍按 XML 显示层级（不做 SVG 规范校验，需求明确不要求） |
-| E10 | 节点类型图标 | 根与容器（有子元素的）用 `SymbolKind.Namespace`，叶子用 `SymbolKind.Field`，只影响图标 |
+| E10 | 节点类型图标 | 有子元素的节点用 `SymbolKind.Namespace`，没有子元素的节点（包括空根和空组）用 `SymbolKind.Field`，只影响图标 |
 | E11 | 点击大纲节点时被切换到图片预览（v0.1.1，见第 8 节 BUG-V1） | 扩展在 `package.json` 的 `contributes.configurationDefaults` 中把 `workbench.editorAssociations` 的默认值设为 `{"*.svg": "default"}`：`.svg` 默认用文本编辑器打开。这是**默认值**，用户设置优先；想恢复图片预览，可在用户设置中把 `*.svg` 关联到 `imagePreview.previewEditor` |
 
 ## 6. 测试策略
@@ -80,15 +81,22 @@ vscode-extension/
 | 不完整 XML | 未闭合标签、标签不匹配、属性引号未闭合、注释未结束、只有半个 `<`：都返回空结果且不抛异常 |
 | 其他 | 注释与 `<?xml?>` 被忽略、CDATA 中的 `<` 不被当成标签、自闭合标签、中文 id、多行开始标签的位置 |
 | 文件标记 | `.svg` / `.SVG` 文件加标记；`.txt`、无扩展名文件、名为 `x.svg` 的目录不加 |
-| 真实运行 | 在 VSCode 中安装 `.vsix`，截图两项效果与"不完整 XML 时大纲清空" |
+| 真实运行 | 安装后的截图覆盖 Explorer 标记、鼠标点击定位、编辑更新和不完整输入。干净配置的宿主额外验证了自动激活、默认文本编辑器、原生大纲的键盘定位、未保存编辑、XML 恢复和 `UPPER.SVG` 文档符号。[宿主验证记录](docs/evidence/vscode-host.json) |
 
 ## 7. 安装与运行（使用者）
 
 1. 获取 `svg-badge-outline-<版本>.vsix`（构建产物，不在 git 中；用 `npm run package` 生成）；
 2. VSCode → 扩展面板右上角"…" → **从 VSIX 安装…** → 选择该文件；
-3. 打开包含 `.svg` 的文件夹，Explorer 中可见 `[]`；用"重新打开编辑器的方式 → 文本编辑器"打开 SVG，展开"大纲"面板。
+3. 打开 `samples/` 文件夹，检查 Explorer 中的 `[]`。打开 `flowchart.svg`，展开“大纲”。如果当前用户配置将 SVG 关联到图片预览，使用“重新打开编辑器的方式 → 文本编辑器”。
 
-从源码构建（需要 Node.js ≥ 22）：`cd vscode-extension && npm ci && npm test && npm run package`。
+从源码构建已在 Node.js 24.3.0 下验证。在仓库根目录依次运行：
+
+```bash
+cd vscode-extension
+npm ci
+npm run check
+npm run package
+```
 
 ## 8. 实际运行中发现的问题
 
@@ -99,5 +107,5 @@ vscode-extension/
 | BUG-V3 | 同上 | DOCTYPE 内部子集中的注释或处理指令含引号或 `[` 时（如 `<!-- don't -->`），格式良好的文件大纲为空 | `skipDeclaration` 只跟踪引号和方括号，没有跳过子集中的注释与处理指令 | 在子集中遇到 `<!--`、`<?` 时整体跳过 |
 | BUG-V4 | 同上 | 嵌套约 5000–10000 层的合法文件大纲为空（输出通道记录栈溢出），扩展本身未崩溃 | `SvgDocumentSymbolProvider` 递归构建符号树 | 改为显式栈逐层构建；2 万层嵌套测试通过（VSCode 自身能否展示如此深的树未验证） |
 | BUG-V5 | 同上 | `id` 中的字面换行、制表符原样显示在大纲名称里 | 未做 XML 属性值规范化 | 先统一换行，再把字面的制表、换行、回车替换为空格（XML 1.0 §3.3.3）；字符引用 `&#10;` 不受影响 |
-| BUG-V6 | 同上（设计审查） | 大写扩展名的 `ICON.SVG` 有 `[]` 标记却没有大纲 | 文件标记规则不区分大小写，而文档选择器 `**/*.svg` 区分大小写 | 选择器改为 `**/*.[sS][vV][gG]`（E3）。真实 VSCode 中的效果待用户确认 |
+| BUG-V6 | 同上（设计审查） | 大写扩展名的 `ICON.SVG` 有 `[]` 标记却没有大纲 | 原文档选择器 `**/*.svg` 只显式匹配小写后缀 | v0.1.2 改用 `**/*.[sS][vV][gG]`。复核中，VSCode 1.147.0 默认用文本编辑器打开 `UPPER.SVG`，实际返回了含 `g#diagram` 和 `g#nodeB` 的符号树 |
 

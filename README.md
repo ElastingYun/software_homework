@@ -2,6 +2,8 @@
 
 Lab1 Phase 1 —— 命令行 SVG 编辑器（TypeScript，面向对象，Command 模式）。
 
+Phase 2 第一部分在 VS Code 的 Explorer 中标记 SVG 文件，并在原生大纲中定位元素。[运行扩展](vscode-extension/README.md) · [A.1–A.3 演示与分析](doc/README.md#phase-2-第一部分vscode-插件实践)
+
 ## 快速开始
 
 ```bash

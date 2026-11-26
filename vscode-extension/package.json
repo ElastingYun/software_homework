@@ -29,7 +29,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check": "npm run typecheck && npm test",
-    "package": "npm run compile && vsce package --no-dependencies --skip-license --allow-missing-repository --no-rewrite-relative-links"
+    "package": "npm run compile && vsce package --no-dependencies --skip-license --allow-missing-repository --readme-path docs/installed.md"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

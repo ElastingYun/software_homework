@@ -17,7 +17,7 @@
 | 文件与文本 | 管理文件系统、文档内容和编辑缓冲区 | 只通过 VSCode 提供的接口读取：`workspace.fs.stat` 判断是不是文件，`TextDocument.getText()` 取当前文本 |
 | 出错处理 | 提供者抛异常时记录错误、该次请求失败 | 自行吞掉可预期的失败：读不到文件 → 不装饰；XML 不完整 → 空大纲；意外错误写入输出通道，不向 VSCode 抛出（`SvgDocumentSymbolProvider.provideDocumentSymbols`） |
 
-一句话概括：**VSCode 掌握控制流（何时调用、怎样展示），插件只实现 VSCode 定义好的接口并返回数据**——这是典型的"好莱坞原则"（Don't call us, we'll call you），也是 VSCode 能同时承载成千上万个插件而不互相干扰的基础。
+这里的控制反转体现在注册之后。扩展把两个提供者交给 VSCode，之后由宿主发起请求，扩展返回宿主可以渲染的数据。
 
 ### 1.2 注册与调用过程
 
@@ -36,13 +36,13 @@ VS -> Entry : activate(context)\n(onStartupFinished 时)
 Entry -> Ext : new SvgExtension().activate(context)
 Ext -> VS : window.registerFileDecorationProvider(Deco)
 VS --> Ext : Disposable
-Ext -> VS : languages.registerDocumentSymbolProvider(\n  { pattern: "**/*.svg" }, Sym)
+Ext -> VS : languages.registerDocumentSymbolProvider(\n  SvgExtension.SVG_DOCUMENTS, Sym, { label: "SVG" })
 VS --> Ext : Disposable
 Ext -> Ext : context.subscriptions.push(…)
 
 == 运行：由 VSCode 回调 ==
 用户 -> VS : 展开 Explorer
-VS -> Deco : provideFileDecoration(uri)\n（每个可见项一次）
+VS -> Deco : provideFileDecoration(uri)\n按需请求资源的装饰
 Deco --> VS : FileDecoration("[]") 或 undefined
 VS -> 用户 : 在文件名右侧绘制 []
 
@@ -51,7 +51,7 @@ VS -> Sym : provideDocumentSymbols(document)
 Sym --> VS : DocumentSymbol[]（含 range / selectionRange）
 VS -> 用户 : 绘制大纲树
 用户 -> VS : 点击大纲节点
-VS -> 用户 : 按 selectionRange 移动光标（不再调用插件）
+VS -> 用户 : 根据该符号的 selectionRange 导航到源码
 
 == 停用 ==
 VS -> VS : dispose(context.subscriptions)
@@ -60,9 +60,9 @@ VS -> VS : dispose(context.subscriptions)
 
 要点：
 
-1. **注册是"把对象交给宿主"**：插件交出的是实现了 `vscode.FileDecorationProvider` / `vscode.DocumentSymbolProvider` 接口的对象，宿主保存它们并在需要时回调。注册时附带的选择器 `{ pattern: '**/*.svg' }` 让 VSCode 只在 `.svg` 文档上调用大纲提供者（GUIDE E3）。
-2. **调用由 VSCode 发起、按需进行**：装饰只对 Explorer 中**可见**的项请求；文档符号在文档内容变化后由 VSCode 重新请求，所以本插件每次都从当前文本重新解析、不缓存（GUIDE E7），"编辑后大纲更新"不需要插件监听任何事件。
-3. **点击跳转完全由 VSCode 完成**：插件只提供每个节点的 `range`（整个元素）与 `selectionRange`（开始标签中的标签名），跳转、选中、面包屑同步都是宿主行为。BUG-V1（点击后切换到图片预览）正是宿主的"按默认编辑器重新打开再定位"行为造成的，修正方式也是通过清单向宿主声明默认设置（`contributes.configurationDefaults`，GUIDE E11），而不是在插件里接管跳转。这一修正有一个用户可见的副作用：安装插件后，双击 `.svg` 默认以文本方式打开而不再显示图片预览；它只是默认值，用户设置可以改回去（见 README）。
+1. **注册范围。** `SvgExtension.SVG_DOCUMENTS` 的值是 `{ pattern: '**/*.[sS][vV][gG]' }`。VSCode 按路径匹配符号提供者，因此扩展覆盖 `.svg`、`.SVG` 和混合大小写的后缀。文件装饰的注册接口接收提供者对象，路径和文件类型由提供者自行判断。
+2. **回调时机。** VSCode 按需请求资源装饰，也会在文档编辑后重新请求符号。符号提供者每次读取 `document.getText()`，因此未保存的改名也会反映在下一次结果中。两种请求的次数均由宿主决定。
+3. **点击定位。** 扩展提供 `range`（整个元素）与 `selectionRange`（开始标签中的标签名），VSCode 负责把选定的符号定位到编辑器。v0.1.0 曾在作者机器上跳回图片预览。v0.1.1 将 `*.svg` 的默认编辑器关联设为文本编辑器，用户仍可覆盖它。在干净配置的 VSCode 1.147.0 中，用键盘选中原生大纲里的 `rect#start` 后，光标停在 `flowchart.svg` 第 5 行。[宿主验证记录](docs/evidence/vscode-host.json)
 4. **释放**：注册函数返回 `Disposable`，放进 `context.subscriptions` 后由 VSCode 在停用时统一释放，插件无需自己记录要注销什么。
 
 ---
@@ -75,7 +75,7 @@ VS -> VS : dispose(context.subscriptions)
 @startuml classes
 package "VSCode API（宿主定义的接口）" {
   interface FileDecorationProvider {
-    +provideFileDecoration(uri): FileDecoration | undefined
+    +provideFileDecoration(uri): ProviderResult<FileDecoration>
   }
   interface DocumentSymbolProvider {
     +provideDocumentSymbols(document): DocumentSymbol[]
@@ -105,7 +105,7 @@ SvgDocumentSymbolProvider ..> DocumentSymbol : OutlineNode → DocumentSymbol
 @enduml
 ```
 
-- 两个提供者都**实现宿主定义的接口**，并通过构造参数**组合**纯逻辑对象（规则、解析器、文件系统的 `stat`），自己只做"接口适配 + 结果转换"。
+- 两个提供者都实现宿主定义的接口。`SvgFileDecorationProvider` 组合纯逻辑 `SvgFileRule` 与宿主提供的文件系统，按名称筛选后异步读取 `stat`。`SvgDocumentSymbolProvider` 组合纯逻辑解析器与写入输出通道的回调，将文档文本转换为符号树。
 - 纯逻辑类不 import `vscode`，因此能在没有 VSCode 的环境中做单元测试（`test/` 中的单元测试与回归测试）；`vscode` 模块在测试中由 `test/support/vscode.ts` 替代。
 
 ### 2.2 文件装饰与经典 Decorator 模式
@@ -123,7 +123,7 @@ SvgDocumentSymbolProvider ..> DocumentSymbol : OutlineNode → DocumentSymbol
 | 多个装饰 | 嵌套顺序决定效果 | 多个插件可同时为同一文件提供装饰，由**宿主负责合并**，插件之间互不知道 |
 | 对原对象的影响 | 透明：客户端以为在用原对象 | 透明：文件名与内容不变，其他插件看到的仍是原文件 |
 
-结论：VSCode 的"文件装饰"在**意图**上与 Decorator 一致——不修改原对象、可叠加、对原对象透明地附加东西；但在**结构**上不是 GoF Decorator：没有共同接口、没有包装链和转发，附加的是数据而不是行为。它更接近"**宿主持有一组提供者（类似 Strategy/插件注册表），按需查询并合成结果**"的结构，叠加与合并的职责在宿主而不在装饰者。这也是 VSCode 能让互不相识的插件同时装饰同一个文件的原因：如果用经典包装链，各插件必须知道彼此的包装顺序。
+两者都能在保留原对象的前提下附加职责。经典 Decorator 的组合顺序由建立包装链的一方决定，各层沿同一个接口委托调用。VSCode 的组合发生在渲染侧，提供者只需回答某个 URI 应附加哪些界面信息，收集和呈现这些信息由宿主负责。
 
 （对照第二部分：CLI 的 `TreeDecorator` 扩展点同样是"给结构树的行追加标签、渲染器与内核不改"，设计时可以选择真正的包装链，也可以借鉴 VSCode 的"提供者 + 宿主合并"做法，两者在多个标签的拼接顺序上取舍不同。）
 
@@ -138,28 +138,28 @@ SvgDocumentSymbolProvider ..> DocumentSymbol : OutlineNode → DocumentSymbol
 | Client | VSCode 的大纲视图 / 面包屑 | VSCode 的 Explorer |
 | Target | `vscode.DocumentSymbolProvider`（返回 `DocumentSymbol` 树，位置用 `vscode.Range`） | `vscode.FileDecorationProvider`（返回 `FileDecoration`） |
 | Adaptee | `SvgOutlineParser` + `OutlineNode`（与 VSCode 无关的解析结果，位置用自定义的 `SourceSpan`） | `SvgFileRule`（只回答"这个路径是不是 SVG"）+ 文件系统的 `stat` |
-| Adapter | `SvgDocumentSymbolProvider`：组合解析器；`toSymbol()` 把 `OutlineNode` 递归转换为 `DocumentSymbol`，`toRange()` 把 `SourceSpan` 转换为 `vscode.Range`；把"不完整 XML"翻译为空数组 | `SvgFileDecorationProvider`：组合规则与 `stat`，把"是不是 SVG 普通文件"翻译成 `FileDecoration('[]')` 或 `undefined` |
+| Adapter | `SvgDocumentSymbolProvider.toSymbol()` 转换单个节点及其两个范围。`toSymbols()` 用显式栈处理子树，按源码顺序填入 `DocumentSymbol.children` | `SvgFileDecorationProvider` 组合规则与 `stat`，异步返回 `FileDecoration('[]')` 或 `undefined` |
 
 与经典 Adapter 的差异：
 
-1. **Adaptee 是有意设计成与宿主无关的**，而不是"无法修改的遗留类"。目的不只是"接口不兼容时补救"，而是把业务逻辑和平台隔开（端口与适配器思想）：换一个编辑器（例如 Language Server、Web 版编辑器），只需重写适配层。
-2. 适配器做的不只是方法改名，而是**数据结构的递归转换**（节点树 → 符号树、位置值对象 → `Range`）以及**语义转换**（异常 → 空大纲，读不到文件 → 不装饰），比教科书中的 Adapter 更"厚"。
-3. 宿主接口本身是 VSCode 预先定义的扩展点；插件**一定**要通过适配器接入，这正是 Adapter 在插件体系中的普遍用法。
+1. 这里的被适配对象包含本项目为单独测试而设计的规则和解析器。它们可以在没有 VSCode 的进程中调用。
+2. 两个适配器各自处理宿主契约。装饰提供者在 `stat` 失败时返回 `undefined`。大纲中，预期的 `IncompleteXmlError` 由解析器的 `parseOrEmpty()` 转为空数组，提供者负责把其余错误写入输出通道并返回空数组。
+3. VSCode 要求提供者实现约定的接口。将解析器与提供者拆开的决定属于本扩展，目的是让同一套解析逻辑可以独立验证。
 
 ---
 
 ## 3. Phase 1 的解析、模型与遍历代码能否复用
 
-实现前的指导文档初稿判断"Phase 1 的 xmldom 不提供完整位置信息"。写本节时逐项**实际验证**（验证脚本 [`docs/evidence/xmldom-probe.mjs`](docs/evidence/xmldom-probe.mjs)，在仓库根目录运行 `node vscode-extension/docs/evidence/xmldom-probe.mjs`），修正了其中一处：**xmldom 本身会记录每个元素开始标签的行号和列号**（`lineNumber`、`columnNumber`，从 1 开始），但**不记录元素的结束位置**。逐项结论如下。
+本节以 `ElastingYun/software_homework` 的 `final` 对应提交 `8edfba0` 为基线。开发初稿曾笼统写过“xmldom 不提供完整位置信息”。实验进一步确定，元素的 `lineNumber` 和 `columnNumber` 给出开始标签的位置，从 1 开始，元素结束位置需要另外计算。复现时在仓库根目录执行 `npm ci --omit=dev` 安装 CLI 的运行依赖，然后执行 `node vscode-extension/docs/evidence/xmldom-probe.mjs`。[实验脚本](docs/evidence/xmldom-probe.mjs)
 
 | Phase 1 代码 | 能否复用于 A.2 大纲 | 依据 |
 |---|---|---|
-| **解析：`@xmldom/xmldom`**（第三方库） | **部分可复用** | ✔ 能给出开始位置，可作为 `selectionRange` 的起点；✔ 遇到不完整 XML 会抛异常（实测"未闭合标签""标签不匹配""写到一半"三种输入均抛出），捕获后返回空大纲即可满足要求。✘ 没有结束位置：`DocumentSymbol.range` 需要覆盖整个元素（VSCode 用它做面包屑同步和高亮，且要求包含 `selectionRange`），只能另行计算。✘ 行列从 1 开始、按字符计数，需要换算成 VSCode 从 0 开始的 UTF-16 位置 |
-| **解析：`src/io/SvgReader.ts`** | **不能复用** | ① 读入后立即转换为 `Shape` 对象，**丢弃了 xmldom 给出的位置**；② 只导入 6 种已注册图形，`path`、`defs` 等元素被**跳过**（`readChildren`：`skipped unsupported element`），而大纲要显示全部元素；③ 缺 id 时**自动分配** `rect1` 之类的 id（`resolveId`），大纲会显示源码中并不存在的 id；④ 嵌套超过 500 层直接拒绝（`MAX_DEPTH`）；⑤ 用 `onErrorStopParsing` 把所有警告都当成致命错误。这些都是编辑器"读入后可编辑"所需要的规则，与大纲"如实反映源码"的目标相反 |
-| **模型：`src/model/`（`Shape`、`GroupShape`、`SvgDocument` 等 32 个类）** | **不能直接复用，设计思想可借鉴** | 模型本身是纯 TypeScript、不依赖 Node 和第三方库（依赖规则 R1，`src/model` 中 0 处 `node:` / `@xmldom` 导入），技术上可以被插件引用；但它是"可编辑的图形模型"：只有 6 种类型、没有源码位置字段、强制 id 唯一且必填（`SvgDocument.attach` 冲突即报错）。大纲需要的是"任意元素、可缺 id、可重复 id、带位置"的只读树，所以插件另建了轻量的 `OutlineNode` |
-| **遍历：`Shape.selfAndDescendants()`、`TreeRenderer.collect()`** | **不能直接复用，算法思路一致** | 两者都在 `Shape` 树上工作，`TreeRenderer` 产出的是终端文本行而不是结构化节点；插件的 `SvgDocumentSymbolProvider.toSymbol()` 采用了同样的"先序、递归处理子节点"思路，在 `OutlineNode` 树上重新实现 |
+| **解析：`@xmldom/xmldom`**（第三方库） | **部分可复用** | 实测可得到开始标签 `<` 所在的行列。本扩展还需要标签名的起止位置（`selectionRange`）和整个元素的结束位置（`range`），并将行列换算成 VSCode 的零基位置。脚本中的未闭合标签、标签不匹配、未写完的属性三种输入均触发解析异常 |
+| **解析：`src/io/SvgReader.ts`** | **不能复用** | ① 读入后立即转换为 `Shape` 对象，**丢弃了 xmldom 给出的位置**；② 只导入 6 种已注册图形，`path`、`defs` 等元素被**跳过**（`readChildren`：`skipped unsupported element`），而大纲要显示全部元素；③ 缺 id 时**自动分配** `rect1` 之类的 id（`resolveId`），大纲会显示源码中并不存在的 id；④ 嵌套超过 500 层直接拒绝（`MAX_DEPTH`）；⑤ `onErrorStopParsing` 会在解析器报告 `error` 时中止，普通 `warning` 可继续处理。这些都是编辑器"读入后可编辑"所需要的规则，与大纲"如实反映源码"的目标相反 |
+| **模型：`src/model/` 中的 `Shape`、`GroupShape`、`SvgDocument`** | **可借鉴树结构** | 模型用纯 TypeScript 表示可编辑图形。默认注册六种图形，`SvgDocument.attach` 维护唯一的 id 索引，图形对象未保留源码范围。大纲须忠实显示源码，允许元素无 id，并要携带位置。因此扩展以 `OutlineNode` 保存标签、可选 id、范围和有序子节点 |
+| **遍历：`Shape.selfAndDescendants()`、`TreeRenderer.collect()`** | **可借鉴按子节点顺序遍历的思路** | 前者返回扁平的 `Shape[]`，后者递归生成终端文本行，两者均依赖 CLI 的图形模型。扩展须保留层级与定位范围，因此 `SvgDocumentSymbolProvider.toSymbols()` 用显式栈把 `OutlineNode` 子节点按源码顺序写入对应的符号树 |
 | **工程层面** | 有额外成本 | CLI 是 ESM 工程（`"type": "module"`、`NodeNext`、导入带 `.js` 后缀），扩展编译为 CommonJS；若要共享代码，需要打包工具（如 esbuild）或把公共部分抽成独立包。另外 xmldom 需要随扩展一起打包发布 |
 
-**结论**：Phase 1 中真正可能复用的是第三方解析器 xmldom（只能提供开始位置）和"Composite 树 + 先序遍历"的设计思想；Phase 1 自己的读入、模型和渲染代码都是为"命令行编辑器"设计的（只认 6 种图形、补全 id、拒绝深嵌套、丢弃位置），不适合"如实展示任意 SVG 源码结构"的大纲。因此插件采用了一个约 200 行、带位置记录、容错的扫描器（`OutlineScan`），一次扫描同时得到开始位置、结束位置和标签名位置，并且不引入额外依赖、与 CLI 工程的模块格式无关。
+扩展沿用了 Phase 1 按子节点顺序组织元素树的设计。即使使用 xmldom，也还要从源码补出定位范围。现版由 `LineIndex` 先建立行起始偏移索引，`OutlineScan` 随扫描记录元素范围和标签名范围。这样既保留了原始标签与可选 id，也能在编辑中直接从索引求出所需行列。
 
 **对第二部分的启示**：如果将来希望 CLI 与插件共享解析代码，较合理的方向是把"带位置的 XML 结构扫描"抽成独立的、与平台无关的包：CLI 在其上构建可编辑模型，插件在其上构建大纲。这不在第一部分范围内，只作为建议记录。
